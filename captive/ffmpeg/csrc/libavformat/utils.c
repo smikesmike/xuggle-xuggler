@@ -1183,11 +1183,6 @@ static void compute_pkt_fields(AVFormatContext *s, AVStream *st,
 
     duration = av_mul_q((AVRational) {pkt->duration, 1}, st->time_base);
     if (pkt->duration == 0) {
-<<<<<<< HEAD
-        compute_frame_duration(&num, &den, st, pc, pkt);
-        if (den && num && st->time_base.den && st->time_base.num) {
-            pkt->duration = av_rescale_rnd(1, num * (int64_t)st->time_base.den, den * (int64_t)st->time_base.num, AV_ROUND_DOWN);
-=======
         ff_compute_frame_duration(&num, &den, st, pc, pkt);
         if (den && num) {
             duration = (AVRational) {num, den};
@@ -1195,7 +1190,6 @@ static void compute_pkt_fields(AVFormatContext *s, AVStream *st,
                                            num * (int64_t) st->time_base.den,
                                            den * (int64_t) st->time_base.num,
                                            AV_ROUND_DOWN);
->>>>>>> 615acb8c1f17c97583139eb67b2efa19dc7e8146
         }
     }
 
