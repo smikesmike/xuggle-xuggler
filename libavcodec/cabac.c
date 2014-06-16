@@ -27,9 +27,33 @@
 #include <string.h>
 
 #include "libavutil/common.h"
+#include "libavutil/timer.h"
 #include "get_bits.h"
 #include "cabac.h"
 #include "cabac_functions.h"
+
+uint8_t ff_h264_cabac_tables[512 + 4*2*64 + 4*64 + 63] = {
+ 9,8,7,7,6,6,6,6,5,5,5,5,5,5,5,5,
+ 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+ 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+ 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+ 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+ 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+ 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+ 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+};
 
 static const uint8_t lps_range[64][4]= {
 {128,176,208,240}, {128,167,197,227}, {128,158,187,216}, {123,150,178,205},
@@ -49,11 +73,6 @@ static const uint8_t lps_range[64][4]= {
 {  8,  9, 11, 13}, {  7,  9, 11, 12}, {  7,  9, 10, 12}, {  7,  8, 10, 11},
 {  6,  8,  9, 11}, {  6,  7,  9, 10}, {  6,  7,  8,  9}, {  2,  2,  2,  2},
 };
-
-uint8_t ff_h264_mlps_state[4*64];
-uint8_t ff_h264_lps_range[4*2*64];
-uint8_t ff_h264_lps_state[2*64];
-static uint8_t h264_mps_state[2 * 64];
 
 static const uint8_t mps_state[64]= {
   1, 2, 3, 4, 5, 6, 7, 8,
@@ -77,27 +96,11 @@ static const uint8_t lps_state[64]= {
  36,36,37,37,37,38,38,63,
 };
 
-const uint8_t ff_h264_norm_shift[512]= {
- 9,8,7,7,6,6,6,6,5,5,5,5,5,5,5,5,
- 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
- 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
- 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
- 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
- 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
- 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
- 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
- 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
- 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
- 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
- 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
- 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+static const uint8_t last_coeff_flag_offset_8x8[63] = {
+ 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+ 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+ 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8
 };
 
 /**
@@ -132,32 +135,35 @@ void ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size){
     c->range= 0x1FE;
 }
 
-void ff_init_cabac_states(CABACContext *c){
+void ff_init_cabac_states(void)
+{
     int i, j;
+    static int initialized = 0;
+
+    if (initialized)
+        return;
 
     for(i=0; i<64; i++){
         for(j=0; j<4; j++){ //FIXME check if this is worth the 1 shift we save
             ff_h264_lps_range[j*2*64+2*i+0]=
             ff_h264_lps_range[j*2*64+2*i+1]= lps_range[i][j];
         }
-
-        ff_h264_mlps_state[128+2*i+0]=
-        h264_mps_state[2 * i + 0] = 2 * mps_state[i] + 0;
-        ff_h264_mlps_state[128+2*i+1]=
-        h264_mps_state[2 * i + 1] = 2 * mps_state[i] + 1;
+        ff_h264_mlps_state[128 + 2 * i + 0] = 2 * mps_state[i] + 0;
+        ff_h264_mlps_state[128 + 2 * i + 1] = 2 * mps_state[i] + 1;
 
         if( i ){
-            ff_h264_lps_state[2*i+0]=
             ff_h264_mlps_state[128-2*i-1]= 2*lps_state[i]+0;
-            ff_h264_lps_state[2*i+1]=
             ff_h264_mlps_state[128-2*i-2]= 2*lps_state[i]+1;
         }else{
-            ff_h264_lps_state[2*i+0]=
             ff_h264_mlps_state[128-2*i-1]= 1;
-            ff_h264_lps_state[2*i+1]=
             ff_h264_mlps_state[128-2*i-2]= 0;
         }
     }
+    for(i=0; i< 63; i++){
+      ff_h264_last_coeff_flag_offset_8x8[i] = last_coeff_flag_offset_8x8[i];
+    }
+
+    initialized = 1;
 }
 
 #ifdef TEST
@@ -165,7 +171,6 @@ void ff_init_cabac_states(CABACContext *c){
 
 #include "libavutil/lfg.h"
 #include "avcodec.h"
-#include "cabac.h"
 
 static inline void put_cabac_bit(CABACContext *c, int b){
     put_bits(&c->pb, 1, b);
@@ -197,11 +202,11 @@ static void put_cabac(CABACContext *c, uint8_t * const state, int bit){
 
     if(bit == ((*state)&1)){
         c->range -= RangeLPS;
-        *state    = h264_mps_state[*state];
+        *state    = ff_h264_mlps_state[128 + *state];
     }else{
         c->low += c->range - RangeLPS;
         c->range = RangeLPS;
-        *state= ff_h264_lps_state[*state];
+        *state= ff_h264_mlps_state[127 - *state];
     }
 
     renorm_cabac_encoder(c);
@@ -243,7 +248,7 @@ static int put_cabac_terminate(CABACContext *c, int bit){
 
         renorm_cabac_encoder(c);
 
-        assert(c->low <= 0x1FF);
+        av_assert0(c->low <= 0x1FF);
         put_cabac_bit(c, c->low>>9);
         put_bits(&c->pb, 2, ((c->low>>7)&3)|1);
 
@@ -263,7 +268,7 @@ int main(void){
 
     av_lfg_init(&prng, 1);
     ff_init_cabac_encoder(&c, b, SIZE);
-    ff_init_cabac_states(&c);
+    ff_init_cabac_states();
 
     for(i=0; i<SIZE; i++){
         if(2*i<SIZE) r[i] = av_lfg_get(&prng) % 7;
@@ -297,7 +302,7 @@ STOP_TIMER("get_cabac_bypass")
 
     for(i=0; i<SIZE; i++){
 START_TIMER
-        if( (r[i]&1) != get_cabac(&c, state) )
+        if( (r[i]&1) != get_cabac_noinline(&c, state) )
             av_log(NULL, AV_LOG_ERROR, "CABAC failure at %d\n", i);
 STOP_TIMER("get_cabac")
     }
