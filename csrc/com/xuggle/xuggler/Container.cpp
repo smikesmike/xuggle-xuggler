@@ -1328,7 +1328,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
       if (codec && codec->getType() == ICodec::CODEC_TYPE_AUDIO)
-        mFormatContext->audio_codec_id = (enum CodecID) id;
+        mFormatContext->audio_codec_id = (enum AVCodecID) id;
     }
     return retval;
   }
@@ -1341,7 +1341,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
       if (codec && codec->getType() == ICodec::CODEC_TYPE_VIDEO)
-        mFormatContext->video_codec_id = (enum CodecID) id;
+        mFormatContext->video_codec_id = (enum AVCodecID) id;
     }
     return retval;
   }
@@ -1354,7 +1354,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
       if (codec && codec->getType() == ICodec::CODEC_TYPE_SUBTITLE)
-        mFormatContext->subtitle_codec_id = (enum CodecID) id;
+        mFormatContext->subtitle_codec_id = (enum AVCodecID) id;
     }
     return retval;
   }
