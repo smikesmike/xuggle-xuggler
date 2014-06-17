@@ -90,7 +90,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     Codec *retval = 0;
     AVCodec *codec = 0;
-    enum CodecID ffmpeg_id = (enum CodecID) id;
+    enum AVCodecID ffmpeg_id = (enum AVCodecID) id;
     Global::lock();
     codec = avcodec_find_encoder(ffmpeg_id);
     Global::unlock();
@@ -129,7 +129,7 @@ namespace com { namespace xuggle { namespace xuggler
     AVCodec *codec = 0;
 
     Global::lock();
-    codec = avcodec_find_decoder((enum CodecID) id);
+    codec = avcodec_find_decoder((enum AVCodecID) id);
     Global::unlock();
     
     if (codec)
@@ -161,7 +161,7 @@ namespace com { namespace xuggle { namespace xuggler
   bool
   Codec :: canEncode()
   {
-    return mCodec ? mCodec->encode || mCodec->encode2 : false;
+    return mCodec ? mCodec->encode2 : false;
   }
 
   Codec*
@@ -199,7 +199,7 @@ namespace com { namespace xuggle { namespace xuggler
 
     if (oFmt)
     {
-      enum CodecID id = av_guess_codec(oFmt, shortName, url,
+      enum AVCodecID id = av_guess_codec(oFmt, shortName, url,
           mimeType, (enum AVMediaType) type);
       retval = Codec::findEncodingCodecByIntID((int)id);
     }
