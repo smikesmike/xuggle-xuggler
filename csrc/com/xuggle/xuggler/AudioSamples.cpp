@@ -98,7 +98,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (sampleSize > 0)
       requiredSamples = capacity / getSampleSize();
     else
-      requiredSamples = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+      requiredSamples = 192000;// AVCODEC_MAX_AUDIO_FRAME_SIZE disappear
     mRequestedSamples = requiredSamples;
     
     return 0;

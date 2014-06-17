@@ -68,7 +68,7 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   Codec *
-  Codec :: make(AVCodec *aCodec)
+  Codec :: make(const AVCodec *aCodec)
   {
     Codec *retval = 0;
     if (aCodec)

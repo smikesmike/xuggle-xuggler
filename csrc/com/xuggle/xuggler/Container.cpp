@@ -1389,7 +1389,7 @@ namespace com { namespace xuggle { namespace xuggler
     Stream *retval=0;
     try
     {
-      AVCodec* avCodec = codec ? codec->getAVCodec() : 0;
+      const AVCodec* avCodec = codec ? codec->getAVCodec() : 0;
 
       if (!mFormatContext)
         throw std::runtime_error("no format context");

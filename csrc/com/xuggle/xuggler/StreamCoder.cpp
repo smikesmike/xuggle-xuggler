@@ -124,7 +124,7 @@ StreamCoder :: readyAVContexts(
     Stream* aStream,
     Codec *aCodec,
     AVCodecContext *avContext,
-    AVCodec *avCodec)
+    const AVCodec *avCodec)
 {
   int retval = -1;
   if (!avContext)
@@ -193,7 +193,7 @@ void
 StreamCoder::setCodec(ICodec * aCodec)
 {
   Codec* codec = dynamic_cast<Codec*>(aCodec);
-  AVCodec* avCodec = 0;
+  const AVCodec* avCodec = 0;
 
   if (!codec) {
     VS_LOG_INFO("Cannot set codec to null codec");
@@ -286,7 +286,7 @@ StreamCoder :: make (Direction direction, Codec* codec)
   try
   {
     AVCodecContext* codecCtx=0;
-    AVCodec* avCodec = 0;
+    const AVCodec* avCodec = 0;
 
     if (codec)
       avCodec = codec->getAVCodec();
@@ -387,7 +387,7 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
 
 StreamCoder *
 StreamCoder::make(Direction direction, AVCodecContext * codecCtx,
-    AVCodec* avCodec, Stream* stream)
+    const AVCodec* avCodec, Stream* stream)
 {
   StreamCoder *retval = 0;
   RefPointer<Codec> codec;
@@ -775,7 +775,7 @@ StreamCoder::open(IMetaData* aOptions, IMetaData* aUnsetOptions)
        * value we had been using, and we check after the open call and log
        * an error if it changed for some reason.
        */
-      AVCodec* cachedCodec = mCodecContext->codec;
+      const AVCodec* cachedCodec = mCodecContext->codec;
       mCodecContext->codec = 0;
       retval = avcodec_open2(mCodecContext, mCodec->getAVCodec(), &tmp);
 
@@ -806,7 +806,7 @@ StreamCoder::open(IMetaData* aOptions, IMetaData* aUnsetOptions)
           * IAudioSamples::findSampleBitDepth(
               (IAudioSamples::Format) mCodecContext->sample_fmt) / 8;
       if (frame_bytes <= 0)
-        frame_bytes = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+        frame_bytes = 192000; //AVCODEC_MAX_AUDIO_FRAME_SIZE disappear
 
       if (!mAudioFrameBuffer || mAudioFrameBuffer->getBufferSize()
           < frame_bytes)
@@ -896,7 +896,7 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
 
   // When decoding with FFMPEG, ffmpeg needs the sample buffer
   // to be at least this long.
-  samples->ensureCapacity(AVCODEC_MAX_AUDIO_FRAME_SIZE);
+  samples->ensureCapacity(192000); //AVCODEC_MAX_AUDIO_FRAME_SIZE
   outBufSize = samples->getMaxBufferSize();
   inBufSize = packet->getSize() - startingByte;
 
