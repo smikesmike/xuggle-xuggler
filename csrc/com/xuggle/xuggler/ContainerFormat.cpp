@@ -332,7 +332,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mOutputFormat)
       return 0;
     return (int32_t)av_codec_get_tag(mOutputFormat->codec_tag,
-        (enum CodecID)id);
+        (enum AVCodecID)id);
     
   }
 
