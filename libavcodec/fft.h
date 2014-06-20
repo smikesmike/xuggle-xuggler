@@ -22,19 +22,19 @@
 #ifndef AVCODEC_FFT_H
 #define AVCODEC_FFT_H
 
-#ifndef FFT_FLOAT
-#define FFT_FLOAT 1
+#ifndef CONFIG_FFT_FLOAT
+#define CONFIG_FFT_FLOAT 1
 #endif
 
-#ifndef FFT_FIXED_32
-#define FFT_FIXED_32 0
+#ifndef CONFIG_FFT_FIXED_32
+#define CONFIG_FFT_FIXED_32 0
 #endif
 
 #include <stdint.h>
 #include "config.h"
 #include "libavutil/mem.h"
 
-#if FFT_FLOAT
+#if CONFIG_FFT_FLOAT
 
 #include "avfft.h"
 
@@ -44,20 +44,20 @@ typedef float FFTDouble;
 
 #else
 
-#if FFT_FIXED_32
+#if CONFIG_FFT_FIXED_32
 
 #define Q31(x) (int)((x)*2147483648.0 + 0.5)
 #define FFT_NAME(x) x ## _fixed_32
 
 typedef int32_t FFTSample;
 
-#else /* FFT_FIXED_32 */
+#else /* CONFIG_FFT_FIXED_32 */
 
 #define FFT_NAME(x) x ## _fixed
 
 typedef int16_t FFTSample;
 
-#endif /* FFT_FIXED_32 */
+#endif /* CONFIG_FFT_FIXED_32 */
 
 typedef struct FFTComplex {
     FFTSample re, im;
@@ -66,7 +66,7 @@ typedef struct FFTComplex {
 typedef int    FFTDouble;
 typedef struct FFTContext FFTContext;
 
-#endif /* FFT_FLOAT */
+#endif /* CONFIG_FFT_FLOAT */
 
 typedef struct FFTDComplex {
     FFTDouble re, im;

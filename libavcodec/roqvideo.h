@@ -43,7 +43,6 @@ struct RoqTempData;
 
 typedef struct RoqContext {
 
-    const AVClass *class;
     AVCodecContext *avctx;
     AVFrame *last_frame;
     AVFrame *current_frame;
@@ -70,9 +69,6 @@ typedef struct RoqContext {
     const AVFrame *frame_to_enc;
     uint8_t *out_buf;
     struct RoqTempData *tmpData;
-
-    int quake3_compat; // Quake 3 compatibility option
-
 } RoqContext;
 
 #define RoQ_INFO              0x1001

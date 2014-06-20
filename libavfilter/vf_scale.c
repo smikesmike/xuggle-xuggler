@@ -51,8 +51,6 @@ static const char *const var_names[] = {
     "dar",
     "hsub",
     "vsub",
-    "ohsub",
-    "ovsub",
     NULL
 };
 
@@ -66,8 +64,6 @@ enum var_name {
     VAR_DAR,
     VAR_HSUB,
     VAR_VSUB,
-    VAR_OHSUB,
-    VAR_OVSUB,
     VARS_NB
 };
 
@@ -81,7 +77,6 @@ typedef struct {
      * New dimensions. Special values are:
      *   0 = original width/height
      *  -1 = keep original aspect
-     *  -N = try to keep aspect but make sure it is divisible by N
      */
     int w, h;
     char *size_str;
@@ -232,12 +227,10 @@ static int config_props(AVFilterLink *outlink)
     enum AVPixelFormat outfmt = outlink->format;
     ScaleContext *scale = ctx->priv;
     const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(inlink->format);
-    const AVPixFmtDescriptor *out_desc = av_pix_fmt_desc_get(outlink->format);
     int64_t w, h;
     double var_values[VARS_NB], res;
     char *expr;
     int ret;
-    int factor_w, factor_h;
 
     var_values[VAR_IN_W]  = var_values[VAR_IW] = inlink->w;
     var_values[VAR_IN_H]  = var_values[VAR_IH] = inlink->h;
@@ -249,8 +242,6 @@ static int config_props(AVFilterLink *outlink)
     var_values[VAR_DAR]   = var_values[VAR_A] * var_values[VAR_SAR];
     var_values[VAR_HSUB]  = 1 << desc->log2_chroma_w;
     var_values[VAR_VSUB]  = 1 << desc->log2_chroma_h;
-    var_values[VAR_OHSUB] = 1 << out_desc->log2_chroma_w;
-    var_values[VAR_OVSUB] = 1 << out_desc->log2_chroma_h;
 
     /* evaluate width and height */
     av_expr_parse_and_eval(&res, (expr = scale->w_expr),
@@ -272,35 +263,23 @@ static int config_props(AVFilterLink *outlink)
     w = scale->w;
     h = scale->h;
 
-    /* Check if it is requested that the result has to be divisible by a some
-     * factor (w or h = -n with n being the factor). */
-    factor_w = 1;
-    factor_h = 1;
-    if (w < -1) {
-        factor_w = -w;
+    /* sanity check params */
+    if (w <  -1 || h <  -1) {
+        av_log(ctx, AV_LOG_ERROR, "Size values less than -1 are not acceptable.\n");
+        return AVERROR(EINVAL);
     }
-    if (h < -1) {
-        factor_h = -h;
-    }
-
-    if (w < 0 && h < 0)
+    if (w == -1 && h == -1)
         scale->w = scale->h = 0;
 
     if (!(w = scale->w))
         w = inlink->w;
     if (!(h = scale->h))
         h = inlink->h;
+    if (w == -1)
+        w = av_rescale(h, inlink->w, inlink->h);
+    if (h == -1)
+        h = av_rescale(w, inlink->h, inlink->w);
 
-    /* Make sure that the result is divisible by the factor we determined
-     * earlier. If no factor was set, it is nothing will happen as the default
-     * factor is 1 */
-    if (w < 0)
-        w = av_rescale(h, inlink->w, inlink->h * factor_w) * factor_w;
-    if (h < 0)
-        h = av_rescale(w, inlink->h, inlink->w * factor_h) * factor_h;
-
-    /* Note that force_original_aspect_ratio may overwrite the previous set
-     * dimensions so that it is not divisible by the set factors anymore. */
     if (scale->force_original_aspect_ratio) {
         int tmp_w = av_rescale(h, inlink->w, inlink->h);
         int tmp_h = av_rescale(w, inlink->h, inlink->w);
@@ -588,7 +567,7 @@ static const AVFilterPad avfilter_vf_scale_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_scale = {
+AVFilter avfilter_vf_scale = {
     .name          = "scale",
     .description   = NULL_IF_CONFIG_SMALL("Scale the input video size and/or convert the image format."),
     .init_dict     = init_dict,

@@ -32,8 +32,6 @@
 #undef __STRICT_ANSI__          /* for _beginthread() */
 #include <stdlib.h>
 
-#include "libavutil/mem.h"
-
 typedef TID  pthread_t;
 typedef void pthread_attr_t;
 

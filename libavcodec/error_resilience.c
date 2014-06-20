@@ -27,13 +27,11 @@
 
 #include <limits.h>
 
-#include "libavutil/internal.h"
 #include "avcodec.h"
 #include "error_resilience.h"
 #include "mpegvideo.h"
 #include "rectangle.h"
 #include "thread.h"
-#include "version.h"
 
 /**
  * @param stride the number of MVs to get to the next row
@@ -700,8 +698,8 @@ static int is_intra_more_likely(ERContext *s)
         return 0; // almost all MBs damaged -> use temporal prediction
 
     // prevent dsp.sad() check, that requires access to the image
-    if (CONFIG_XVMC    &&
-        s->avctx->hwaccel && s->avctx->hwaccel->decode_mb &&
+    if (CONFIG_MPEG_XVMC_DECODER    &&
+        s->avctx->xvmc_acceleration &&
         s->cur_pic->f.pict_type == AV_PICTURE_TYPE_I)
         return 1;
 
@@ -766,7 +764,7 @@ void ff_er_frame_start(ERContext *s)
 
 static int er_supported(ERContext *s)
 {
-    if(s->avctx->hwaccel && s->avctx->hwaccel->decode_slice           ||
+    if(s->avctx->hwaccel                                              ||
        s->avctx->codec->capabilities&CODEC_CAP_HWACCEL_VDPAU          ||
        !s->cur_pic                                                    ||
        s->cur_pic->field_picture
@@ -791,7 +789,7 @@ void ff_er_add_slice(ERContext *s, int startx, int starty,
     const int end_xy   = s->mb_index2xy[end_i];
     int mask           = -1;
 
-    if (s->avctx->hwaccel && s->avctx->hwaccel->decode_slice)
+    if (s->avctx->hwaccel)
         return;
 
     if (start_i > end_i || start_xy > end_xy) {
@@ -1184,8 +1182,8 @@ void ff_er_frame_end(ERContext *s)
     } else
         guess_mv(s);
 
-    /* the filters below manipulate raw image, skip them */
-    if (CONFIG_XVMC && s->avctx->hwaccel && s->avctx->hwaccel->decode_mb)
+    /* the filters below are not XvMC compatible, skip them */
+    if (CONFIG_MPEG_XVMC_DECODER && s->avctx->xvmc_acceleration)
         goto ec_clean;
     /* fill DC for inter blocks */
     for (mb_y = 0; mb_y < s->mb_height; mb_y++) {

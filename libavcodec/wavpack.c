@@ -487,13 +487,6 @@ static inline int wv_unpack_stereo(WavpackFrameContext *s, GetBitContext *gb,
     } while (!last && count < s->samples);
 
     wv_reset_saved_context(s);
-
-    if (last && count < s->samples) {
-        int size = av_get_bytes_per_sample(type);
-        memset((uint8_t*)dst_l + count*size, 0, (s->samples-count)*size);
-        memset((uint8_t*)dst_r + count*size, 0, (s->samples-count)*size);
-    }
-
     if ((s->avctx->err_recognition & AV_EF_CRCCHECK) &&
         wv_check_crc(s, crc, crc_extra_bits))
         return AVERROR_INVALIDDATA;
@@ -555,17 +548,9 @@ static inline int wv_unpack_mono(WavpackFrameContext *s, GetBitContext *gb,
     } while (!last && count < s->samples);
 
     wv_reset_saved_context(s);
-
-    if (last && count < s->samples) {
-        int size = av_get_bytes_per_sample(type);
-        memset((uint8_t*)dst + count*size, 0, (s->samples-count)*size);
-    }
-
-    if (s->avctx->err_recognition & AV_EF_CRCCHECK) {
-        int ret = wv_check_crc(s, crc, crc_extra_bits);
-        if (ret < 0 && s->avctx->err_recognition & AV_EF_EXPLODE)
-            return ret;
-    }
+    if ((s->avctx->err_recognition & AV_EF_CRCCHECK) &&
+        wv_check_crc(s, crc, crc_extra_bits))
+        return AVERROR_INVALIDDATA;
 
     return 0;
 }
@@ -860,8 +845,7 @@ static int wavpack_decode_block(AVCodecContext *avctx, int block_no,
         case WP_ID_DATA:
             s->sc.offset = bytestream2_tell(&gb);
             s->sc.size   = size * 8;
-            if ((ret = init_get_bits8(&s->gb, gb.buffer, size)) < 0)
-                return ret;
+            init_get_bits(&s->gb, gb.buffer, size * 8);
             s->data_size = size * 8;
             bytestream2_skip(&gb, size);
             got_bs       = 1;
@@ -875,8 +859,7 @@ static int wavpack_decode_block(AVCodecContext *avctx, int block_no,
             }
             s->extra_sc.offset = bytestream2_tell(&gb);
             s->extra_sc.size   = size * 8;
-            if ((ret = init_get_bits8(&s->gb_extra_bits, gb.buffer, size)) < 0)
-                return ret;
+            init_get_bits(&s->gb_extra_bits, gb.buffer, size * 8);
             s->crc_extra_bits  = get_bits_long(&s->gb_extra_bits, 32);
             bytestream2_skip(&gb, size);
             s->got_extra_bits  = 1;

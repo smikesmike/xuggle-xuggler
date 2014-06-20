@@ -23,13 +23,6 @@
 
 #include "deshake.h"
 
-typedef struct {
-    float x;
-    float y;
-    float z;
-    float w;
-} float4;
-
 int ff_opencl_deshake_init(AVFilterContext *ctx);
 
 void ff_opencl_deshake_uninit(AVFilterContext *ctx);

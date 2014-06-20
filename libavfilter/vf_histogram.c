@@ -365,7 +365,7 @@ static const AVFilterPad outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_histogram = {
+AVFilter avfilter_vf_histogram = {
     .name          = "histogram",
     .description   = NULL_IF_CONFIG_SMALL("Compute and draw a histogram."),
     .priv_size     = sizeof(HistogramContext),

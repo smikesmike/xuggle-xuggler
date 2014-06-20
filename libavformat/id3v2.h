@@ -73,12 +73,6 @@ typedef struct ID3v2ExtraMetaAPIC {
     enum AVCodecID id;
 } ID3v2ExtraMetaAPIC;
 
-typedef struct ID3v2ExtraMetaPRIV {
-    uint8_t *owner;
-    uint8_t *data;
-    uint32_t datasize;
-} ID3v2ExtraMetaPRIV;
-
 /**
  * Detect ID3v2 Header.
  * @param buf   must be ID3v2_HEADER_SIZE byte long
@@ -95,27 +89,11 @@ int ff_id3v2_match(const uint8_t *buf, const char *magic);
 int ff_id3v2_tag_len(const uint8_t *buf);
 
 /**
- * Read an ID3v2 tag into specified dictionary and retrieve supported extra metadata.
- *
- * Chapters are not currently read by this variant.
- *
- * @param metadata Parsed metadata is stored here
+ * Read an ID3v2 tag, including supported extra metadata
  * @param extra_meta If not NULL, extra metadata is parsed into a list of
  * ID3v2ExtraMeta structs and *extra_meta points to the head of the list
  */
-void ff_id3v2_read_dict(AVIOContext *pb, AVDictionary **metadata, const char *magic, ID3v2ExtraMeta **extra_meta);
-
-/**
- * Read an ID3v2 tag, including supported extra metadata and chapters.
- *
- * Data is read from and stored to AVFormatContext.
- *
- * @param extra_meta If not NULL, extra metadata is parsed into a list of
- * ID3v2ExtraMeta structs and *extra_meta points to the head of the list
- * @param[opt] max_search_search restrict ID3 magic number search (bytes from start)
- */
-void ff_id3v2_read(AVFormatContext *s, const char *magic, ID3v2ExtraMeta **extra_meta,
-                   unsigned int max_search_size);
+void ff_id3v2_read(AVFormatContext *s, const char *magic, ID3v2ExtraMeta **extra_meta);
 
 /**
  * Initialize an ID3v2 tag.
@@ -136,7 +114,7 @@ int ff_id3v2_write_apic(AVFormatContext *s, ID3v2EncContext *id3, AVPacket *pkt)
 /**
  * Finalize an opened ID3v2 tag.
  */
-void ff_id3v2_finish(ID3v2EncContext *id3, AVIOContext *pb, int padding_bytes);
+void ff_id3v2_finish(ID3v2EncContext *id3, AVIOContext *pb);
 
 /**
  * Write an ID3v2 tag containing all global metadata from s.

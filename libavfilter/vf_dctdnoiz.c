@@ -419,7 +419,7 @@ static const AVFilterPad dctdnoiz_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_dctdnoiz = {
+AVFilter avfilter_vf_dctdnoiz = {
     .name          = "dctdnoiz",
     .description   = NULL_IF_CONFIG_SMALL("Denoise frames using 2D DCT."),
     .priv_size     = sizeof(DCTdnoizContext),

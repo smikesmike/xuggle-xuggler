@@ -70,7 +70,6 @@ static int pcm_dvd_parse_header(AVCodecContext *avctx, const uint8_t *header)
     /* early exit if the header didn't change apart from the frame number */
     if (s->last_header == header_int)
         return 0;
-    s->last_header = -1;
 
     if (avctx->debug & FF_DEBUG_PICT_INFO)
         av_dlog(avctx, "pcm_dvd_parse_header: header = %02x%02x%02x\n",
@@ -249,8 +248,8 @@ static int pcm_dvd_decode_frame(AVCodecContext *avctx, void *data,
 
     if ((retval = pcm_dvd_parse_header(avctx, src)))
         return retval;
-    if (s->last_block_size && s->last_block_size != s->block_size) {
-        av_log(avctx, AV_LOG_WARNING, "block_size has changed %d != %d\n", s->last_block_size, s->block_size);
+    if (s->last_block_size != s->block_size) {
+        av_log(avctx, AV_LOG_WARNING, "block_size has changed\n");
         s->extra_sample_count = 0;
     }
     s->last_block_size = s->block_size;

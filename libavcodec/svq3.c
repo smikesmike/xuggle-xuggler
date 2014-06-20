@@ -158,8 +158,6 @@ static const uint32_t svq3_dequant_coeff[32] = {
     61694, 68745, 77615, 89113, 100253, 109366, 126635, 141533
 };
 
-static int svq3_decode_end(AVCodecContext *avctx);
-
 void ff_svq3_luma_dc_dequant_idct_c(int16_t *output, int16_t *input, int qp)
 {
     const int qmul = svq3_dequant_coeff[qp];
@@ -319,8 +317,8 @@ static inline void svq3_mc_dir_part(SVQ3Context *s,
     src  = pic->f.data[0] + mx + my * h->linesize;
 
     if (emu) {
-        h->vdsp.emulated_edge_mc(h->edge_emu_buffer, src,
-                                 h->linesize, h->linesize,
+        h->vdsp.emulated_edge_mc(h->edge_emu_buffer, h->linesize,
+                                 src, h->linesize,
                                  width + 1, height + 1,
                                  mx, my, s->h_edge_pos, s->v_edge_pos);
         src = h->edge_emu_buffer;
@@ -346,8 +344,8 @@ static inline void svq3_mc_dir_part(SVQ3Context *s,
             src  = pic->f.data[i] + mx + my * h->uvlinesize;
 
             if (emu) {
-                h->vdsp.emulated_edge_mc(h->edge_emu_buffer, src,
-                                         h->uvlinesize, h->uvlinesize,
+                h->vdsp.emulated_edge_mc(h->edge_emu_buffer, h->uvlinesize,
+                                         src, h->uvlinesize,
                                          width + 1, height + 1,
                                          mx, my, (s->h_edge_pos >> 1),
                                          s->v_edge_pos >> 1);
@@ -840,8 +838,8 @@ static int svq3_decode_slice_header(AVCodecContext *avctx)
     skip_bits1(&h->gb);
     skip_bits(&h->gb, 2);
 
-    if (skip_1stop_8data_bits(&h->gb) < 0)
-        return AVERROR_INVALIDDATA;
+    while (get_bits1(&h->gb))
+        skip_bits(&h->gb, 8);
 
     /* reset intra predictors and invalidate motion vector references */
     if (h->mb_x > 0) {
@@ -870,18 +868,19 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
     unsigned char *extradata_end;
     unsigned int size;
     int marker_found = 0;
-    int ret;
 
     s->cur_pic  = av_mallocz(sizeof(*s->cur_pic));
     s->last_pic = av_mallocz(sizeof(*s->last_pic));
     s->next_pic = av_mallocz(sizeof(*s->next_pic));
     if (!s->next_pic || !s->last_pic || !s->cur_pic) {
-        ret = AVERROR(ENOMEM);
-        goto fail;
+        av_freep(&s->cur_pic);
+        av_freep(&s->last_pic);
+        av_freep(&s->next_pic);
+        return AVERROR(ENOMEM);
     }
 
-    if ((ret = ff_h264_decode_init(avctx)) < 0)
-        goto fail;
+    if (ff_h264_decode_init(avctx) < 0)
+        return -1;
 
     ff_hpeldsp_init(&s->hdsp, avctx->flags);
     h->flags           = avctx->flags;
@@ -916,10 +915,8 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
         int frame_size_code;
 
         size = AV_RB32(&extradata[4]);
-        if (size > extradata_end - extradata - 8) {
-            ret = AVERROR_INVALIDDATA;
-            goto fail;
-        }
+        if (size > extradata_end - extradata - 8)
+            return AVERROR_INVALIDDATA;
         init_get_bits(&gb, extradata + 8, size * 8);
 
         /* 'frame size code' and optional 'width, height' */
@@ -973,10 +970,8 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
         /* unknown field */
         skip_bits1(&gb);
 
-        if (skip_1stop_8data_bits(&gb) < 0) {
-            ret = AVERROR_INVALIDDATA;
-            goto fail;
-        }
+        while (get_bits1(&gb))
+            skip_bits(&gb, 8);
 
         s->unknown_flag  = get_bits1(&gb);
         avctx->has_b_frames = !h->low_delay;
@@ -994,10 +989,8 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
             uint8_t *buf;
 
             if (watermark_height <= 0 ||
-                (uint64_t)watermark_width * 4 > UINT_MAX / watermark_height) {
-                ret = -1;
-                goto fail;
-            }
+                (uint64_t)watermark_width * 4 > UINT_MAX / watermark_height)
+                return -1;
 
             buf = av_malloc(buf_len);
             av_log(avctx, AV_LOG_DEBUG, "watermark size: %dx%d\n",
@@ -1010,8 +1003,7 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
                 av_log(avctx, AV_LOG_ERROR,
                        "could not uncompress watermark logo\n");
                 av_free(buf);
-                ret = -1;
-                goto fail;
+                return -1;
             }
             s->watermark_key = ff_svq1_packet_checksum(buf, buf_len, 0);
             s->watermark_key = s->watermark_key << 16 | s->watermark_key;
@@ -1021,8 +1013,7 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
 #else
             av_log(avctx, AV_LOG_ERROR,
                    "this svq3 file contains watermark which need zlib support compiled in\n");
-            ret = -1;
-            goto fail;
+            return -1;
 #endif
         }
     }
@@ -1037,15 +1028,12 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
     s->h_edge_pos = h->mb_width * 16;
     s->v_edge_pos = h->mb_height * 16;
 
-    if ((ret = ff_h264_alloc_tables(h)) < 0) {
+    if (ff_h264_alloc_tables(h) < 0) {
         av_log(avctx, AV_LOG_ERROR, "svq3 memory allocation failed\n");
-        goto fail;
+        return AVERROR(ENOMEM);
     }
 
     return 0;
-fail:
-    svq3_decode_end(avctx);
-    return ret;
 }
 
 static void free_picture(AVCodecContext *avctx, Picture *pic)
@@ -1137,7 +1125,8 @@ static int svq3_decode_frame(AVCodecContext *avctx, void *data,
     h->mb_x = h->mb_y = h->mb_xy = 0;
 
     if (s->watermark_key) {
-        av_fast_padded_malloc(&s->buf, &s->buf_size, buf_size);
+        av_fast_malloc(&s->buf, &s->buf_size,
+                       buf_size+FF_INPUT_BUFFER_PADDING_SIZE);
         if (!s->buf)
             return AVERROR(ENOMEM);
         memcpy(s->buf, avpkt->data, buf_size);
@@ -1187,7 +1176,6 @@ static int svq3_decode_frame(AVCodecContext *avctx, void *data,
     if (h->pict_type != AV_PICTURE_TYPE_I) {
         if (!s->last_pic->f.data[0]) {
             av_log(avctx, AV_LOG_ERROR, "Missing reference frame.\n");
-            av_frame_unref(&s->last_pic->f);
             ret = get_buffer(avctx, s->last_pic);
             if (ret < 0)
                 return ret;
@@ -1200,7 +1188,6 @@ static int svq3_decode_frame(AVCodecContext *avctx, void *data,
 
         if (h->pict_type == AV_PICTURE_TYPE_B && !s->next_pic->f.data[0]) {
             av_log(avctx, AV_LOG_ERROR, "Missing reference frame.\n");
-            av_frame_unref(&s->next_pic->f);
             ret = get_buffer(avctx, s->next_pic);
             if (ret < 0)
                 return ret;
@@ -1298,10 +1285,9 @@ static int svq3_decode_frame(AVCodecContext *avctx, void *data,
                     (h->pict_type == AV_PICTURE_TYPE_P && mb_type < 8) ? (mb_type - 1) : -1;
         }
 
-        ff_draw_horiz_band(avctx, s->cur_pic,
-                           s->last_pic->f.data[0] ? s->last_pic : NULL,
-                           16 * h->mb_y, 16, h->picture_structure, 0,
-                           h->low_delay);
+        ff_draw_horiz_band(avctx, NULL, s->cur_pic, s->last_pic->f.data[0] ? s->last_pic : NULL,
+                           16 * h->mb_y, 16, h->picture_structure, 0, 0,
+                           h->low_delay, h->mb_height * 16, h->mb_width * 16);
     }
 
     left = buf_size*8 - get_bits_count(&h->gb);

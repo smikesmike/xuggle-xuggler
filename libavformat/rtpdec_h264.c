@@ -190,8 +190,7 @@ static int h264_handle_packet(AVFormatContext *ctx, PayloadContext *data,
     switch (type) {
     case 0:                    // undefined, but pass them through
     case 1:
-        if ((result = av_new_packet(pkt, len + sizeof(start_sequence))) < 0)
-            return result;
+        av_new_packet(pkt, len + sizeof(start_sequence));
         memcpy(pkt->data, start_sequence, sizeof(start_sequence));
         memcpy(pkt->data + sizeof(start_sequence), buf, len);
         COUNT_NAL_TYPE(data, nal);
@@ -248,8 +247,7 @@ static int h264_handle_packet(AVFormatContext *ctx, PayloadContext *data,
                 if (pass == 0) {
                     /* now we know the total size of the packet (with the
                      * start sequences added) */
-                    if ((result = av_new_packet(pkt, total_length)) < 0)
-                        return result;
+                    av_new_packet(pkt, total_length);
                     dst = pkt->data;
                 } else {
                     assert(dst - pkt->data == total_length);
@@ -294,14 +292,12 @@ static int h264_handle_packet(AVFormatContext *ctx, PayloadContext *data,
                 COUNT_NAL_TYPE(data, nal_type);
             if (start_bit) {
                 /* copy in the start sequence, and the reconstructed nal */
-                if ((result = av_new_packet(pkt, sizeof(start_sequence) + sizeof(nal) + len)) < 0)
-                    return result;
+                av_new_packet(pkt, sizeof(start_sequence) + sizeof(nal) + len);
                 memcpy(pkt->data, start_sequence, sizeof(start_sequence));
                 pkt->data[sizeof(start_sequence)] = reconstructed_nal;
                 memcpy(pkt->data + sizeof(start_sequence) + sizeof(nal), buf, len);
             } else {
-                if ((result = av_new_packet(pkt, len)) < 0)
-                    return result;
+                av_new_packet(pkt, len);
                 memcpy(pkt->data, buf, len);
             }
         } else {

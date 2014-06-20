@@ -23,8 +23,6 @@
  * audio channel layout utility functions
  */
 
-#include <stdint.h>
-
 #include "avstring.h"
 #include "avutil.h"
 #include "channel_layout.h"

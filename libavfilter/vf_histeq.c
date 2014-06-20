@@ -268,7 +268,7 @@ static const AVFilterPad histeq_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_histeq = {
+AVFilter avfilter_vf_histeq = {
     .name          = "histeq",
     .description   = NULL_IF_CONFIG_SMALL("Apply global color histogram equalization."),
     .priv_size     = sizeof(HisteqContext),

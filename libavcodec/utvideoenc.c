@@ -58,7 +58,7 @@ static av_cold int utvideo_encode_close(AVCodecContext *avctx)
 static av_cold int utvideo_encode_init(AVCodecContext *avctx)
 {
     UtvideoContext *c = avctx->priv_data;
-    int i, subsampled_height;
+    int i;
     uint32_t original_format;
 
     c->avctx           = avctx;
@@ -83,10 +83,7 @@ static av_cold int utvideo_encode_init(AVCodecContext *avctx)
             return AVERROR_INVALIDDATA;
         }
         c->planes        = 3;
-        if (avctx->colorspace == AVCOL_SPC_BT709)
-            avctx->codec_tag = MKTAG('U', 'L', 'H', '0');
-        else
-            avctx->codec_tag = MKTAG('U', 'L', 'Y', '0');
+        avctx->codec_tag = MKTAG('U', 'L', 'Y', '0');
         original_format  = UTVIDEO_420;
         break;
     case AV_PIX_FMT_YUV422P:
@@ -96,10 +93,7 @@ static av_cold int utvideo_encode_init(AVCodecContext *avctx)
             return AVERROR_INVALIDDATA;
         }
         c->planes        = 3;
-        if (avctx->colorspace == AVCOL_SPC_BT709)
-            avctx->codec_tag = MKTAG('U', 'L', 'H', '2');
-        else
-            avctx->codec_tag = MKTAG('U', 'L', 'Y', '2');
+        avctx->codec_tag = MKTAG('U', 'L', 'Y', '2');
         original_format  = UTVIDEO_422;
         break;
     default:
@@ -132,27 +126,7 @@ static av_cold int utvideo_encode_init(AVCodecContext *avctx)
         return AVERROR_OPTION_NOT_FOUND;
     }
 
-    /*
-     * Check the asked slice count for obviously invalid
-     * values (> 256 or negative).
-     */
-    if (avctx->slices > 256 || avctx->slices < 0) {
-        av_log(avctx, AV_LOG_ERROR,
-               "Slice count %d is not supported in Ut Video (theoretical range is 0-256).\n",
-               avctx->slices);
-        return AVERROR(EINVAL);
-    }
-
-    /* Check that the slice count is not larger than the subsampled height */
-    subsampled_height = avctx->height >> av_pix_fmt_desc_get(avctx->pix_fmt)->log2_chroma_h;
-    if (avctx->slices > subsampled_height) {
-        av_log(avctx, AV_LOG_ERROR,
-               "Slice count %d is larger than the subsampling-applied height %d.\n",
-               avctx->slices, subsampled_height);
-        return AVERROR(EINVAL);
-    }
-
-    avctx->coded_frame = av_frame_alloc();
+    avctx->coded_frame = avcodec_alloc_frame();
 
     if (!avctx->coded_frame) {
         av_log(avctx, AV_LOG_ERROR, "Could not allocate frame.\n");
@@ -201,19 +175,9 @@ static av_cold int utvideo_encode_init(AVCodecContext *avctx)
 
     /*
      * Set how many slices are going to be used.
-     * By default uses multiple slices depending on the subsampled height.
-     * This enables multithreading in the official decoder.
+     * Set one slice for now.
      */
-    if (!avctx->slices) {
-        c->slices = subsampled_height / 120;
-
-        if (!c->slices)
-            c->slices = 1;
-        else if (c->slices > 256)
-            c->slices = 256;
-    } else {
-        c->slices = avctx->slices;
-    }
+    c->slices = 1;
 
     /* Set compression mode */
     c->compression = COMP_HUFF;
@@ -399,7 +363,6 @@ static int encode_plane(AVCodecContext *avctx, uint8_t *src,
     uint32_t offset = 0, slice_len = 0;
     int      i, sstart, send = 0;
     int      symbol;
-    int      ret;
 
     /* Do prediction / make planes */
     switch (c->frame_pred) {
@@ -466,8 +429,7 @@ static int encode_plane(AVCodecContext *avctx, uint8_t *src,
     }
 
     /* Calculate huffman lengths */
-    if ((ret = ff_huff_gen_len_table(lengths, counts, 256)) < 0)
-        return ret;
+    ff_huff_gen_len_table(lengths, counts);
 
     /*
      * Write the plane's header into the output packet:
@@ -494,7 +456,7 @@ static int encode_plane(AVCodecContext *avctx, uint8_t *src,
          * get the offset in bits and convert to bytes.
          */
         offset += write_huff_codes(dst + sstart * width, c->slice_bits,
-                                   width * height + 4, width,
+                                   width * (send - sstart), width,
                                    send - sstart, he) >> 3;
 
         slice_len = offset - slice_len;
@@ -551,7 +513,8 @@ static int utvideo_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
 
     bytestream2_init_writer(&pb, dst, pkt->size);
 
-    av_fast_padded_malloc(&c->slice_bits, &c->slice_bits_size, width * height + 4);
+    av_fast_malloc(&c->slice_bits, &c->slice_bits_size,
+                   width * height + FF_INPUT_BUFFER_PADDING_SIZE);
 
     if (!c->slice_bits) {
         av_log(avctx, AV_LOG_ERROR, "Cannot allocate temporary buffer 2.\n");

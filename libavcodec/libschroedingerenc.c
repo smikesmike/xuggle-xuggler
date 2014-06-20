@@ -293,27 +293,21 @@ static int libschroedinger_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
 
     /* Now check to see if we have any output from the encoder. */
     while (go) {
-        int err;
         SchroStateEnum state;
         state = schro_encoder_wait(encoder);
         switch (state) {
         case SCHRO_STATE_HAVE_BUFFER:
         case SCHRO_STATE_END_OF_STREAM:
             enc_buf = schro_encoder_pull(encoder, &presentation_frame);
-            if (enc_buf->length <= 0)
-                return AVERROR_BUG;
+            av_assert0(enc_buf->length > 0);
             parse_code = enc_buf->data[4];
 
             /* All non-frame data is prepended to actual frame data to
              * be able to set the pts correctly. So we don't write data
              * to the frame output queue until we actually have a frame
              */
-            if ((err = av_reallocp(&p_schro_params->enc_buf,
-                                   p_schro_params->enc_buf_size +
-                                   enc_buf->length)) < 0) {
-                p_schro_params->enc_buf_size = 0;
-                return err;
-            }
+            p_schro_params->enc_buf = av_realloc(p_schro_params->enc_buf,
+                                                 p_schro_params->enc_buf_size + enc_buf->length);
 
             memcpy(p_schro_params->enc_buf + p_schro_params->enc_buf_size,
                    enc_buf->data, enc_buf->length);

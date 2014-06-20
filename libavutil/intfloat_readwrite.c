@@ -29,9 +29,7 @@
 #include "common.h"
 #include "mathematics.h"
 #include "intfloat_readwrite.h"
-#include "version.h"
 
-#if FF_API_INTFLOAT
 double av_int2dbl(int64_t v){
     if((uint64_t)v+v > 0xFFEULL<<52)
         return NAN;
@@ -98,4 +96,3 @@ AVExtFloat av_dbl2ext(double d){
         ext.exponent[0] |= 0x80;
     return ext;
 }
-#endif /* FF_API_INTFLOAT */

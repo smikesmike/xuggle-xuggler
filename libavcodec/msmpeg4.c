@@ -240,7 +240,10 @@ int ff_msmpeg4_pred_dc(MpegEncContext *s, int n,
         : "%eax", "%edx"
     );
 #else
-    /* Divisions are costly everywhere; optimize the most common case. */
+    /* #elif ARCH_ALPHA */
+    /* Divisions are extremely costly on Alpha; optimize the most
+       common case. But they are costly everywhere...
+     */
     if (scale == 8) {
         a = (a + (8 >> 1)) / 8;
         b = (b + (8 >> 1)) / 8;

@@ -270,7 +270,7 @@ static const AVFilterPad flite_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_asrc_flite = {
+AVFilter avfilter_asrc_flite = {
     .name          = "flite",
     .description   = NULL_IF_CONFIG_SMALL("Synthesize voice from text using libflite."),
     .query_formats = query_formats,

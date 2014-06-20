@@ -317,14 +317,9 @@ static int truemotion1_decode_header(TrueMotion1Context *s)
     const uint8_t *sel_vector_table;
 
     header.header_size = ((s->buf[0] >> 5) | (s->buf[0] << 3)) & 0x7f;
-    if (s->buf[0] < 0x10)
+    if (s->buf[0] < 0x10 || header.header_size >= s->size)
     {
         av_log(s->avctx, AV_LOG_ERROR, "invalid header size (%d)\n", s->buf[0]);
-        return AVERROR_INVALIDDATA;
-    }
-
-    if (header.header_size + 1 > s->size) {
-        av_log(s->avctx, AV_LOG_ERROR, "Input packet too small.\n");
         return AVERROR_INVALIDDATA;
     }
 
@@ -402,16 +397,15 @@ static int truemotion1_decode_header(TrueMotion1Context *s)
         new_pix_fmt = AV_PIX_FMT_RGB555; // RGB565 is supported as well
 
     s->w >>= width_shift;
+    if ((ret = av_image_check_size(s->w, s->h, 0, s->avctx)) < 0)
+        return ret;
 
     if (s->w != s->avctx->width || s->h != s->avctx->height ||
         new_pix_fmt != s->avctx->pix_fmt) {
         av_frame_unref(s->frame);
         s->avctx->sample_aspect_ratio = (AVRational){ 1 << width_shift, 1 };
         s->avctx->pix_fmt = new_pix_fmt;
-
-        if ((ret = ff_set_dimensions(s->avctx, s->w, s->h)) < 0)
-            return ret;
-
+        avcodec_set_dimensions(s->avctx, s->w, s->h);
         av_fast_malloc(&s->vert_pred, &s->vert_pred_size, s->avctx->width * sizeof(unsigned int));
         if (!s->vert_pred)
             return AVERROR(ENOMEM);
@@ -524,16 +518,11 @@ hres,vres,i,i%vres (0 < i < 4)
     index = s->index_stream[index_stream_index++] * 4; \
 }
 
-#define INC_INDEX                                                   \
-do {                                                                \
-    if (index >= 1023) {                                            \
-        av_log(s->avctx, AV_LOG_ERROR, "Invalid index value.\n");   \
-        return;                                                     \
-    }                                                               \
-    index++;                                                        \
-} while (0)
-
 #define APPLY_C_PREDICTOR() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->c_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -545,12 +534,16 @@ do {                                                                \
             if (predictor_pair & 1) \
                 GET_NEXT_INDEX() \
             else \
-                INC_INDEX; \
+                index++; \
         } \
     } else \
-        INC_INDEX;
+        index++;
 
 #define APPLY_C_PREDICTOR_24() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->c_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -562,13 +555,17 @@ do {                                                                \
             if (predictor_pair & 1) \
                 GET_NEXT_INDEX() \
             else \
-                INC_INDEX; \
+                index++; \
         } \
     } else \
-        INC_INDEX;
+        index++;
 
 
 #define APPLY_Y_PREDICTOR() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->y_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -580,12 +577,16 @@ do {                                                                \
             if (predictor_pair & 1) \
                 GET_NEXT_INDEX() \
             else \
-                INC_INDEX; \
+                index++; \
         } \
     } else \
-        INC_INDEX;
+        index++;
 
 #define APPLY_Y_PREDICTOR_24() \
+    if(index > 1023){\
+        av_log(s->avctx, AV_LOG_ERROR, " index %d went out of bounds\n", index); \
+        return; \
+    }\
     predictor_pair = s->y_predictor_table[index]; \
     horiz_pred += (predictor_pair >> 1); \
     if (predictor_pair & 1) { \
@@ -597,10 +598,10 @@ do {                                                                \
             if (predictor_pair & 1) \
                 GET_NEXT_INDEX() \
             else \
-                INC_INDEX; \
+                index++; \
         } \
     } else \
-        INC_INDEX;
+        index++;
 
 #define OUTPUT_PIXEL_PAIR() \
     *current_pixel_pair = *vert_pred + horiz_pred; \

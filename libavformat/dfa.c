@@ -28,9 +28,6 @@ static int dfa_probe(AVProbeData *p)
     if (p->buf_size < 4 || AV_RL32(p->buf) != MKTAG('D', 'F', 'I', 'A'))
         return 0;
 
-    if (AV_RL32(p->buf + 16) != 0x80)
-        return AVPROBE_SCORE_MAX / 4;
-
     return AVPROBE_SCORE_MAX;
 }
 

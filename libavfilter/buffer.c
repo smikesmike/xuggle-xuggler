@@ -24,7 +24,6 @@
 #include "libavutil/avassert.h"
 #include "libavutil/common.h"
 #include "libavutil/imgutils.h"
-#include "libavutil/internal.h"
 #include "libavcodec/avcodec.h"
 
 #include "avfilter.h"
@@ -114,9 +113,7 @@ void avfilter_unref_buffer(AVFilterBufferRef *ref)
 
 void avfilter_unref_bufferp(AVFilterBufferRef **ref)
 {
-FF_DISABLE_DEPRECATION_WARNINGS
     avfilter_unref_buffer(*ref);
-FF_ENABLE_DEPRECATION_WARNINGS
     *ref = NULL;
 }
 

@@ -57,7 +57,7 @@ int ff_load_image(uint8_t *data[4], int linesize[4],
         goto end;
     }
 
-    if (!(frame = av_frame_alloc()) ) {
+    if (!(frame = avcodec_alloc_frame()) ) {
         av_log(log_ctx, AV_LOG_ERROR, "Failed to alloc frame\n");
         ret = AVERROR(ENOMEM);
         goto end;

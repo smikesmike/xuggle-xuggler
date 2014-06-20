@@ -20,7 +20,6 @@
  */
 
 #include <inttypes.h>
-#include <stdint.h>
 
 #include "avformat.h"
 #include "internal.h"

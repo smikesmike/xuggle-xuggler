@@ -43,7 +43,6 @@ typedef struct {
     AVFrame **clean_src;    ///< frame queue for the clean source
     int got_frame[2];       ///< frame request flag for each input stream
     double ts_unit;         ///< timestamp units for the output frames
-    int64_t start_pts;      ///< base for output timestamps
     uint32_t eof;           ///< bitmask for end of stream
     int hsub, vsub;         ///< chroma subsampling values
     int depth;
@@ -211,14 +210,11 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
             av_frame_free(&dm->queue[i].frame);
         } else {
             AVFrame *frame = dm->queue[i].frame;
-            if (frame->pts != AV_NOPTS_VALUE && dm->start_pts == AV_NOPTS_VALUE)
-                dm->start_pts = frame->pts;
             if (dm->ppsrc) {
                 av_frame_free(&frame);
                 frame = dm->clean_src[i];
             }
-            frame->pts = outlink->frame_count * dm->ts_unit +
-                         (dm->start_pts == AV_NOPTS_VALUE ? 0 : dm->start_pts);
+            frame->pts = outlink->frame_count * dm->ts_unit;
             ret = ff_filter_frame(outlink, frame);
             if (ret < 0)
                 break;
@@ -263,7 +259,7 @@ static int config_input(AVFilterLink *inlink)
 
 static av_cold int decimate_init(AVFilterContext *ctx)
 {
-    DecimateContext *dm = ctx->priv;
+    const DecimateContext *dm = ctx->priv;
     AVFilterPad pad = {
         .name         = av_strdup("main"),
         .type         = AVMEDIA_TYPE_VIDEO,
@@ -288,8 +284,6 @@ static av_cold int decimate_init(AVFilterContext *ctx)
         av_log(ctx, AV_LOG_ERROR, "blockx and blocky settings must be power of two\n");
         return AVERROR(EINVAL);
     }
-
-    dm->start_pts = AV_NOPTS_VALUE;
 
     return 0;
 }
@@ -390,7 +384,7 @@ static const AVFilterPad decimate_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_decimate = {
+AVFilter avfilter_vf_decimate = {
     .name          = "decimate",
     .description   = NULL_IF_CONFIG_SMALL("Decimate frames (post field matching filter)."),
     .init          = decimate_init,

@@ -181,10 +181,9 @@ static int tgv_decode_inter(TgvContext *s, AVFrame *frame,
     }
 
     if (num_blocks_packed > s->num_blocks_packed) {
-        int err;
-        if ((err = av_reallocp(&s->block_codebook, num_blocks_packed * 16)) < 0) {
+        if (av_reallocp_array(&s->block_codebook, num_blocks_packed, sizeof(*s->block_codebook))) {
             s->num_blocks_packed = 0;
-            return err;
+            return AVERROR(ENOMEM);
         }
         s->num_blocks_packed = num_blocks_packed;
     }
@@ -286,10 +285,9 @@ static int tgv_decode_frame(AVCodecContext *avctx,
         s->width  = AV_RL16(&buf[0]);
         s->height = AV_RL16(&buf[2]);
         if (s->avctx->width != s->width || s->avctx->height != s->height) {
+            avcodec_set_dimensions(s->avctx, s->width, s->height);
             av_freep(&s->frame_buffer);
             av_frame_unref(s->last_frame);
-            if ((ret = ff_set_dimensions(s->avctx, s->width, s->height)) < 0)
-                return ret;
         }
 
         pal_count = AV_RL16(&buf[6]);
@@ -299,6 +297,9 @@ static int tgv_decode_frame(AVCodecContext *avctx,
             buf += 3;
         }
     }
+
+    if ((ret = av_image_check_size(s->width, s->height, 0, avctx)) < 0)
+        return ret;
 
     if ((ret = ff_get_buffer(avctx, frame, AV_GET_BUFFER_FLAG_REF)) < 0)
         return ret;
@@ -311,7 +312,7 @@ static int tgv_decode_frame(AVCodecContext *avctx,
         frame->pict_type = AV_PICTURE_TYPE_I;
 
         if (!s->frame_buffer &&
-            !(s->frame_buffer = av_mallocz(s->width * s->height)))
+            !(s->frame_buffer = av_malloc(s->width * s->height)))
             return AVERROR(ENOMEM);
 
         if (unpack(buf, buf_end, s->frame_buffer, s->avctx->width, s->avctx->height) < 0) {

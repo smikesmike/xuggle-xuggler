@@ -30,7 +30,6 @@
 #include "dirac.h"
 #include "avcodec.h"
 #include "golomb.h"
-#include "internal.h"
 #include "mpeg12data.h"
 
 /* defaults for source parameters */
@@ -318,9 +317,10 @@ int avpriv_dirac_parse_sequence_header(AVCodecContext *avctx, GetBitContext *gb,
     if (ret = parse_source_parameters(avctx, gb, source))
         return ret;
 
-    ret = ff_set_dimensions(avctx, source->width, source->height);
-    if (ret < 0)
+    if (ret = av_image_check_size(source->width, source->height, 0, avctx))
         return ret;
+
+    avcodec_set_dimensions(avctx, source->width, source->height);
 
     /* [DIRAC_STD] picture_coding_mode shall be 0 for fields and 1 for frames
      * currently only used to signal field coding */

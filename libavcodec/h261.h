@@ -38,6 +38,7 @@ typedef struct H261Context {
     MpegEncContext s;
 
     int current_mba;
+    int previous_mba;
     int mba_diff;
     int mtype;
     int current_mv_x;

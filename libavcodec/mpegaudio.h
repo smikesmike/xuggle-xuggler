@@ -26,8 +26,8 @@
 #ifndef AVCODEC_MPEGAUDIO_H
 #define AVCODEC_MPEGAUDIO_H
 
-#ifndef USE_FLOATS
-#   define USE_FLOATS 0
+#ifndef CONFIG_FLOAT
+#   define CONFIG_FLOAT 0
 #endif
 
 #include <stdint.h>
@@ -58,7 +58,7 @@
 
 #define FIX(a)   ((int)((a) * FRAC_ONE))
 
-#if USE_FLOATS
+#if CONFIG_FLOAT
 #   define INTFLOAT float
 typedef float MPA_INT;
 typedef float OUT_INT;

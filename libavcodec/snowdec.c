@@ -562,12 +562,9 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     ff_snow_release_buffer(avctx);
 
     if(!(s->avctx->debug&2048))
-        res = av_frame_ref(picture, s->current_picture);
+        av_frame_ref(picture, s->current_picture);
     else
-        res = av_frame_ref(picture, s->mconly_picture);
-
-    if (res < 0)
-        return res;
+        av_frame_ref(picture, s->mconly_picture);
 
     *got_frame = 1;
 

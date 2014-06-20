@@ -32,7 +32,6 @@
 #include "avcodec.h"
 #include "get_bits.h"
 #include "huffman.h"
-#include "internal.h"
 
 #include "vp56.h"
 #include "vp56data.h"
@@ -93,10 +92,7 @@ static int vp6_parse_header(VP56Context *s, const uint8_t *buf, int buf_size)
                 s->avctx->coded_width  = 16 * cols;
                 s->avctx->coded_height = 16 * rows;
             } else {
-                int ret = ff_set_dimensions(s->avctx, 16 * cols, 16 * rows);
-                if (ret < 0)
-                    return ret;
-
+                avcodec_set_dimensions(s->avctx, 16 * cols, 16 * rows);
                 if (s->avctx->extradata_size == 1) {
                     s->avctx->width  -= s->avctx->extradata[0] >> 4;
                     s->avctx->height -= s->avctx->extradata[0] & 0x0F;
@@ -158,7 +154,7 @@ static int vp6_parse_header(VP56Context *s, const uint8_t *buf, int buf_size)
         buf_size -= coeff_offset;
         if (buf_size < 0) {
             if (s->frames[VP56_FRAME_CURRENT]->key_frame)
-                ff_set_dimensions(s->avctx, 0, 0);
+                avcodec_set_dimensions(s->avctx, 0, 0);
             return AVERROR_INVALIDDATA;
         }
         if (s->use_huffman) {

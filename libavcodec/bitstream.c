@@ -112,11 +112,8 @@ static int alloc_table(VLC *vlc, int size, int use_static)
             abort(); // cannot do anything, init_vlc() is used with too little memory
         vlc->table_allocated += (1 << vlc->bits);
         vlc->table = av_realloc_f(vlc->table, vlc->table_allocated, sizeof(VLC_TYPE) * 2);
-        if (!vlc->table) {
-            vlc->table_allocated = 0;
-            vlc->table_size = 0;
+        if (!vlc->table)
             return AVERROR(ENOMEM);
-        }
     }
     return index;
 }
@@ -232,7 +229,6 @@ static int build_table(VLC *vlc, int table_nb_bits, int nb_codes,
             /* note: realloc has been done, so reload tables */
             table = &vlc->table[table_index];
             table[j][0] = index; //code
-            av_assert0(table[j][0] == index);
             i = k-1;
         }
     }

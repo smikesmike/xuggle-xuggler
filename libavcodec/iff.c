@@ -25,8 +25,6 @@
  * IFF ACBM/DEEP/ILBM/PBM bitmap decoder
  */
 
-#include <stdint.h>
-
 #include "libavutil/imgutils.h"
 #include "bytestream.h"
 #include "avcodec.h"
@@ -488,20 +486,16 @@ static int decode_byterun(uint8_t *dst, int dst_size,
         unsigned length;
         const int8_t value = *buf++;
         if (value >= 0) {
-            length = FFMIN3(value + 1, dst_size - x, buf_end - buf);
-            memcpy(dst + x, buf, length);
+            length = value + 1;
+            memcpy(dst + x, buf, FFMIN3(length, dst_size - x, buf_end - buf));
             buf += length;
         } else if (value > -128) {
-            length = FFMIN(-value + 1, dst_size - x);
-            memset(dst + x, *buf++, length);
+            length = -value + 1;
+            memset(dst + x, *buf++, FFMIN(length, dst_size - x));
         } else { // noop
             continue;
         }
         x += length;
-    }
-    if (x < dst_size) {
-        av_log(NULL, AV_LOG_WARNING, "decode_byterun ended before plane size\n");
-        memset(dst+x, 0, dst_size - x);
     }
     return buf - buf_start;
 }

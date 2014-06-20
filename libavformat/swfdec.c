@@ -55,18 +55,12 @@ static int get_swf_tag(AVIOContext *pb, int *len_ptr)
 
 static int swf_probe(AVProbeData *p)
 {
-    if(p->buf_size < 15)
-        return 0;
-
     /* check file header */
-    if (   AV_RB24(p->buf) != AV_RB24("CWS")
-        && AV_RB24(p->buf) != AV_RB24("FWS"))
+    if ((p->buf[0] == 'F' || p->buf[0] == 'C') && p->buf[1] == 'W' &&
+        p->buf[2] == 'S')
+        return AVPROBE_SCORE_MAX;
+    else
         return 0;
-
-    if (p->buf[3] >= 20)
-        return AVPROBE_SCORE_MAX / 4;
-
-    return AVPROBE_SCORE_MAX;
 }
 
 #if CONFIG_ZLIB
@@ -446,30 +440,16 @@ bitmap_end_skip:
                 goto skip;
             if ((res = av_new_packet(pkt, len)) < 0)
                 return res;
-            if (avio_read(pb, pkt->data, 4) != 4) {
-                av_free_packet(pkt);
-                return AVERROR_INVALIDDATA;
-            }
+            avio_read(pb, pkt->data, 4);
             if (AV_RB32(pkt->data) == 0xffd8ffd9 ||
                 AV_RB32(pkt->data) == 0xffd9ffd8) {
                 /* old SWF files containing SOI/EOI as data start */
                 /* files created by swink have reversed tag */
                 pkt->size -= 4;
-                memset(pkt->data+pkt->size, 0, 4);
-                res = avio_read(pb, pkt->data, pkt->size);
+                avio_read(pb, pkt->data, pkt->size);
             } else {
-                res = avio_read(pb, pkt->data + 4, pkt->size - 4);
-                if (res >= 0)
-                    res += 4;
+                avio_read(pb, pkt->data + 4, pkt->size - 4);
             }
-            if (res != pkt->size) {
-                if (res < 0) {
-                    av_free_packet(pkt);
-                    return res;
-                }
-                av_shrink_packet(pkt, res);
-            }
-
             pkt->pos = pos;
             pkt->stream_index = st->index;
             return pkt->size;

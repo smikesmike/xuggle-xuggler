@@ -111,9 +111,8 @@ static int tqi_decode_frame(AVCodecContext *avctx,
     tqi_calculate_qtable(s, buf[4]);
     buf += 8;
 
-    ret = ff_set_dimensions(s->avctx, s->width, s->height);
-    if (ret < 0)
-        return ret;
+    if (s->avctx->width!=s->width || s->avctx->height!=s->height)
+        avcodec_set_dimensions(s->avctx, s->width, s->height);
 
     if ((ret = ff_get_buffer(avctx, frame, 0)) < 0)
         return ret;

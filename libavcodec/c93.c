@@ -133,8 +133,7 @@ static int decode_frame(AVCodecContext *avctx, void *data,
     uint8_t *out;
     int stride, ret, i, x, y, b, bt = 0;
 
-    if ((ret = ff_set_dimensions(avctx, WIDTH, HEIGHT)) < 0)
-        return ret;
+    avcodec_set_dimensions(avctx, WIDTH, HEIGHT);
 
     c93->currentpic ^= 1;
 
