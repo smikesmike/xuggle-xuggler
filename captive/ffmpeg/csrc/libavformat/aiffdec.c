@@ -278,9 +278,8 @@ static int aiff_read_header(AVFormatContext *s)
         case MKTAG('w', 'a', 'v', 'e'):
             if ((uint64_t)size > (1<<30))
                 return -1;
-            if (ff_alloc_extradata(st->codec, size))
+            if (ff_get_extradata(st->codec, pb, size) < 0)
                 return AVERROR(ENOMEM);
-            avio_read(pb, st->codec->extradata, size);
             if (st->codec->codec_id == AV_CODEC_ID_QDM2 && size>=12*4 && !st->codec->block_align) {
                 st->codec->block_align = AV_RB32(st->codec->extradata+11*4);
                 aiff->block_duration = AV_RB32(st->codec->extradata+9*4);
@@ -345,16 +344,10 @@ static int aiff_read_packet(AVFormatContext *s,
         return AVERROR_EOF;
 
     /* Now for that packet */
-    switch (st->codec->codec_id) {
-    case AV_CODEC_ID_ADPCM_IMA_QT:
-    case AV_CODEC_ID_GSM:
-    case AV_CODEC_ID_QDM2:
-    case AV_CODEC_ID_QCELP:
+    if (st->codec->block_align >= 17) // GSM, QCLP, IMA4
         size = st->codec->block_align;
-        break;
-    default:
+    else
         size = (MAX_SIZE / st->codec->block_align) * st->codec->block_align;
-    }
     size = FFMIN(max_size, size);
     res = av_get_packet(s->pb, pkt, size);
     if (res < 0)
