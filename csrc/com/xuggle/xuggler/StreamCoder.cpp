@@ -20,8 +20,6 @@
 #include <stdexcept>
 #include <cstring>
 
-#define attribute_deprecated
-
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/ferry/RefPointer.h>
 
@@ -935,8 +933,8 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
       {
         AVFrame frame;
         int got_frame = 0;
-
-        avcodec_get_frame_defaults(&frame);
+        
+        av_frame_unref(&frame);
 
         retval = avcodec_decode_audio4(mCodecContext, &frame, &got_frame, &pkt);
         // the API for decoding audio changed ot support planar audio and we
@@ -1105,7 +1103,7 @@ StreamCoder::decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
     return retval;
   }
 
-  AVFrame *avFrame = avcodec_alloc_frame();
+  AVFrame *avFrame = av_frame_alloc();
   if (avFrame)
   {
     RefPointer<IBuffer> buffer = packet->getData();
@@ -1296,7 +1294,7 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
         bool dropFrame = false;
         if (frame)
         {
-          avFrame = avcodec_alloc_frame();
+          avFrame = av_frame_alloc();
           if (!avFrame)
             throw std::bad_alloc();
           frame->fillAVFrame(avFrame);
