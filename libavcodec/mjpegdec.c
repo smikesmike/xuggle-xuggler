@@ -334,7 +334,7 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
         s->first_picture = 0;
     }
 
-    if (s->interlaced && (s->bottom_field == !s->interlace_polarity)) {
+    if (s->got_picture && s->interlaced && (s->bottom_field == !s->interlace_polarity)) {
         if (s->progressive) {
             avpriv_request_sample(s->avctx, "progressively coded interlaced picture");
             return AVERROR_INVALIDDATA;
@@ -1092,6 +1092,7 @@ static void shift_output(MJpegDecodeContext *s, uint8_t *ptr, int linesize)
 
 static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
                              int Al, const uint8_t *mb_bitmask,
+                             int mb_bitmask_size,
                              const AVFrame *reference)
 {
     int i, mb_x, mb_y;
@@ -1101,8 +1102,13 @@ static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
     GetBitContext mb_bitmask_gb;
     int bytes_per_pixel = 1 + (s->bits > 8);
 
-    if (mb_bitmask)
+    if (mb_bitmask) {
+        if (mb_bitmask_size != (s->mb_width * s->mb_height + 7)>>3) {
+            av_log(s->avctx, AV_LOG_ERROR, "mb_bitmask_size mismatches\n");
+            return AVERROR_INVALIDDATA;
+        }
         init_get_bits(&mb_bitmask_gb, mb_bitmask, s->mb_width * s->mb_height);
+    }
 
     if (s->flipped && s->avctx->lowres) {
         av_log(s->avctx, AV_LOG_ERROR, "Can not flip image with lowres\n");
@@ -1268,7 +1274,7 @@ static int mjpeg_decode_scan_progressive_ac(MJpegDecodeContext *s, int ss,
 }
 
 int ff_mjpeg_decode_sos(MJpegDecodeContext *s, const uint8_t *mb_bitmask,
-                        const AVFrame *reference)
+                        int mb_bitmask_size, const AVFrame *reference)
 {
     int len, nb_components, i, h, v, predictor, point_transform;
     int index, id, ret;
@@ -1400,7 +1406,7 @@ next_field:
         } else {
             if ((ret = mjpeg_decode_scan(s, nb_components,
                                          prev_shift, point_transform,
-                                         mb_bitmask, reference)) < 0)
+                                         mb_bitmask, mb_bitmask_size, reference)) < 0)
                 return ret;
         }
     }
@@ -1650,7 +1656,7 @@ static int mjpeg_decode_com(MJpegDecodeContext *s)
                     s->interlace_polarity = 1;
             } else if (!strcmp(cbuf, "CS=ITU601"))
                 s->cs_itu601 = 1;
-            else if ((!strncmp(cbuf, "Intel(R) JPEG Library, version 1", 32)) ||
+            else if ((!strncmp(cbuf, "Intel(R) JPEG Library, version 1", 32) && s->avctx->codec_tag) ||
                      (!strncmp(cbuf, "Metasoft MJPEG Codec", 20)))
                 s->flipped = 1;
 
@@ -1735,8 +1741,6 @@ int ff_mjpeg_find_marker(MJpegDecodeContext *s,
         int t = 0, b = 0;
         PutBitContext pb;
 
-        s->cur_scan++;
-
         /* find marker */
         while (src + t < buf_end) {
             uint8_t x = src[t++];
@@ -1801,7 +1805,7 @@ int ff_mjpeg_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                                           &unescaped_buf_size);
         /* EOF */
         if (start_code < 0) {
-            goto the_end;
+            break;
         } else if (unescaped_buf_size > INT_MAX / 8) {
             av_log(avctx, AV_LOG_ERROR,
                    "MJPEG packet 0x%x too big (%d/%d), corrupt data?\n",
@@ -1926,7 +1930,8 @@ eoi_parser:
 
             goto the_end;
         case SOS:
-            if ((ret = ff_mjpeg_decode_sos(s, NULL, NULL)) < 0 &&
+            s->cur_scan++;
+            if ((ret = ff_mjpeg_decode_sos(s, NULL, 0, NULL)) < 0 &&
                 (avctx->err_recognition & AV_EF_EXPLODE))
                 goto fail;
             break;
@@ -1954,7 +1959,7 @@ eoi_parser:
                "marker parser used %d bytes (%d bits)\n",
                (get_bits_count(&s->gb) + 7) / 8, get_bits_count(&s->gb));
     }
-    if (s->got_picture) {
+    if (s->got_picture && s->cur_scan) {
         av_log(avctx, AV_LOG_WARNING, "EOI missing, emulating\n");
         goto eoi_parser;
     }

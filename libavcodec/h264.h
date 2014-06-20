@@ -390,6 +390,8 @@ typedef struct H264Context {
      */
     PPS pps; // FIXME move to Picture perhaps? (->no) do we need that?
 
+    int au_pps_id; ///< pps_id of current access unit
+
     uint32_t dequant4_buffer[6][QP_MAX_NUM + 1][16]; // FIXME should these be moved down?
     uint32_t dequant8_buffer[6][QP_MAX_NUM + 1][64];
     uint32_t(*dequant4_coeff[6])[16];
@@ -655,6 +657,8 @@ typedef struct H264Context {
     int valid_recovery_point;
 
     FPA sei_fpa;
+
+    int has_recovery_point;
 
     int luma_weight_flag[2];    ///< 7.4.3.2 luma_weight_lX_flag
     int chroma_weight_flag[2];  ///< 7.4.3.2 chroma_weight_lX_flag

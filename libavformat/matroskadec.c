@@ -1723,8 +1723,12 @@ static int matroska_read_header(AVFormatContext *s)
         } else if (!strcmp(track->codec_id, "V_QUICKTIME")
                    && (track->codec_priv.size >= 86)
                    && (track->codec_priv.data != NULL)) {
-            fourcc = AV_RL32(track->codec_priv.data);
+            fourcc = AV_RL32(track->codec_priv.data + 4);
             codec_id = ff_codec_get_id(ff_codec_movvideo_tags, fourcc);
+            if (ff_codec_get_id(ff_codec_movvideo_tags, AV_RL32(track->codec_priv.data))) {
+                fourcc = AV_RL32(track->codec_priv.data);
+                codec_id = ff_codec_get_id(ff_codec_movvideo_tags, fourcc);
+            }
         } else if (codec_id == AV_CODEC_ID_PCM_S16BE) {
             switch (track->audio.bitdepth) {
             case  8:  codec_id = AV_CODEC_ID_PCM_U8;     break;
@@ -1834,7 +1838,7 @@ static int matroska_read_header(AVFormatContext *s)
         avpriv_set_pts_info(st, 64, matroska->time_scale*track->time_scale, 1000*1000*1000); /* 64 bit pts in ns */
 
         st->codec->codec_id = codec_id;
-        st->start_time = 0;
+
         if (strcmp(track->language, "und"))
             av_dict_set(&st->metadata, "language", track->language, 0);
         av_dict_set(&st->metadata, "title", track->name, 0);
@@ -1906,6 +1910,7 @@ static int matroska_read_header(AVFormatContext *s)
             st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
             st->codec->sample_rate = track->audio.out_samplerate;
             st->codec->channels = track->audio.channels;
+            if (!st->codec->bits_per_coded_sample)
             st->codec->bits_per_coded_sample = track->audio.bitdepth;
             if (st->codec->codec_id != AV_CODEC_ID_AAC)
             st->need_parsing = AVSTREAM_PARSE_HEADERS;
