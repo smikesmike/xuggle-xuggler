@@ -89,7 +89,8 @@
 .endm
 
 @ ----------------------------------------------------------------
-function ff_put_pixels16_arm, export=1, align=5
+        .align 5
+function ff_put_pixels16_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]
@@ -140,7 +141,8 @@ function ff_put_pixels16_arm, export=1, align=5
 endfunc
 
 @ ----------------------------------------------------------------
-function ff_put_pixels8_arm, export=1, align=5
+        .align 5
+function ff_put_pixels8_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]
@@ -191,7 +193,8 @@ function ff_put_pixels8_arm, export=1, align=5
 endfunc
 
 @ ----------------------------------------------------------------
-function ff_put_pixels8_x2_arm, export=1, align=5
+        .align 5
+function ff_put_pixels8_x2_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]
@@ -249,7 +252,8 @@ function ff_put_pixels8_x2_arm, export=1, align=5
         pop             {r4-r10,pc}
 endfunc
 
-function ff_put_no_rnd_pixels8_x2_arm, export=1, align=5
+        .align 5
+function ff_put_no_rnd_pixels8_x2_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]
@@ -309,7 +313,8 @@ endfunc
 
 
 @ ----------------------------------------------------------------
-function ff_put_pixels8_y2_arm, export=1, align=5
+        .align 5
+function ff_put_pixels8_y2_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]
@@ -406,7 +411,8 @@ function ff_put_pixels8_y2_arm, export=1, align=5
         pop             {r4-r11,pc}
 endfunc
 
-function ff_put_no_rnd_pixels8_y2_arm, export=1, align=5
+        .align 5
+function ff_put_no_rnd_pixels8_y2_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]
@@ -572,7 +578,8 @@ endfunc
         pop             {r4-r11,pc}
 .endm
 
-function ff_put_pixels8_xy2_arm, export=1, align=5
+        .align 5
+function ff_put_pixels8_xy2_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]
@@ -587,7 +594,8 @@ function ff_put_pixels8_xy2_arm, export=1, align=5
 4:      RND_XY2_EXPAND  3, lsl
 endfunc
 
-function ff_put_no_rnd_pixels8_xy2_arm, export=1, align=5
+        .align 5
+function ff_put_no_rnd_pixels8_xy2_arm, export=1
         @ void func(uint8_t *block, const uint8_t *pixels, int line_size, int h)
         @ block = word aligned, pixles = unaligned
         pld             [r1]

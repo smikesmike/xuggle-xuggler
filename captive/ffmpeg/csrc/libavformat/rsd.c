@@ -43,13 +43,10 @@ static const uint32_t rsd_unsupported_tags[] = {
 
 static int rsd_probe(AVProbeData *p)
 {
-    if (memcmp(p->buf, "RSD", 3) || p->buf[3] - '0' < 2 || p->buf[3] - '0' > 6)
-        return 0;
-    if (AV_RL32(p->buf +  8) > 256 || !AV_RL32(p->buf +  8))
-        return AVPROBE_SCORE_MAX / 8;
-    if (AV_RL32(p->buf + 16) > 8*48000 || !AV_RL32(p->buf + 16))
-        return AVPROBE_SCORE_MAX / 8;
-    return AVPROBE_SCORE_MAX;
+    if (!memcmp(p->buf, "RSD", 3) &&
+        p->buf[3] - '0' >= 2 && p->buf[3] - '0' <= 6)
+        return AVPROBE_SCORE_EXTENSION;
+    return 0;
 }
 
 static int rsd_read_header(AVFormatContext *s)
@@ -104,10 +101,13 @@ static int rsd_read_header(AVFormatContext *s)
         /* RSD3GADP is mono, so only alloc enough memory
            to store the coeff table for a single channel. */
 
+        if (ff_alloc_extradata(codec, 32))
+            return AVERROR(ENOMEM);
+
         start = avio_rl32(pb);
 
-        if (ff_get_extradata(codec, s->pb, 32) < 0)
-            return AVERROR(ENOMEM);
+        if (avio_read(s->pb, codec->extradata, 32) != 32)
+            return AVERROR_INVALIDDATA;
 
         for (i = 0; i < 16; i++)
             AV_WB16(codec->extradata + i * 2, AV_RL16(codec->extradata + i * 2));

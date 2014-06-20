@@ -22,7 +22,6 @@
 * @todo better probing than extensions matching
 */
 
-#define MODPLUG_STATIC
 #include <libmodplug/modplug.h>
 #include "libavutil/avstring.h"
 #include "libavutil/eval.h"

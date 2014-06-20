@@ -81,7 +81,6 @@ void ff_rv40dsp_init(RV34DSPContext *c);
 void ff_rv34dsp_init_arm(RV34DSPContext *c);
 void ff_rv34dsp_init_x86(RV34DSPContext *c);
 
-void ff_rv40dsp_init_aarch64(RV34DSPContext *c);
 void ff_rv40dsp_init_x86(RV34DSPContext *c);
 void ff_rv40dsp_init_arm(RV34DSPContext *c);
 

@@ -216,10 +216,7 @@ static int siff_read_packet(AVFormatContext *s, AVPacket *pkt)
             AV_WL16(pkt->data, c->flags);
             if (c->gmcsize)
                 memcpy(pkt->data + 2, c->gmc, c->gmcsize);
-            if (avio_read(s->pb, pkt->data + 2 + c->gmcsize, size) != size) {
-                av_free_packet(pkt);
-                return AVERROR_INVALIDDATA;
-            }
+            avio_read(s->pb, pkt->data + 2 + c->gmcsize, size);
             pkt->stream_index = 0;
             c->curstrm = -1;
         }else{

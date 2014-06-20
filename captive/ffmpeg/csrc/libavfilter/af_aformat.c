@@ -135,7 +135,7 @@ static const AVFilterPad avfilter_af_aformat_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_af_aformat = {
+AVFilter avfilter_af_aformat = {
     .name          = "aformat",
     .description   = NULL_IF_CONFIG_SMALL("Convert the input audio to one of the specified formats."),
     .init          = init,

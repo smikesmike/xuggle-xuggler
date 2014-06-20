@@ -43,9 +43,6 @@ static int vqf_probe(AVProbeData *probe_packet)
     if (!memcmp(probe_packet->buf + 4, "00052200", 8))
         return AVPROBE_SCORE_MAX;
 
-    if (AV_RL32(probe_packet->buf + 12) > (1<<27))
-        return AVPROBE_SCORE_EXTENSION/2;
-
     return AVPROBE_SCORE_EXTENSION;
 }
 
@@ -249,7 +246,7 @@ static int vqf_read_packet(AVFormatContext *s, AVPacket *pkt)
     pkt->data[1] = c->last_frame_bits;
     ret = avio_read(s->pb, pkt->data+2, size);
 
-    if (ret != size) {
+    if (ret<=0) {
         av_free_packet(pkt);
         return AVERROR(EIO);
     }

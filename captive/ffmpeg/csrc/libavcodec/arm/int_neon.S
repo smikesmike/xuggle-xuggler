@@ -21,6 +21,8 @@
 
 #include "libavutil/arm/asm.S"
 
+        .fpu neon
+
 function ff_scalarproduct_int16_neon, export=1
         vmov.i16        q0,  #0
         vmov.i16        q1,  #0
@@ -35,7 +37,7 @@ function ff_scalarproduct_int16_neon, export=1
         vmlal.s16       q2,  d18,  d22
         vmlal.s16       q3,  d19,  d23
         subs            r2,  r2,   #16
-        bgt             1b
+        bne             1b
 
         vpadd.s32       d16, d0,   d1
         vpadd.s32       d17, d2,   d3
@@ -75,7 +77,7 @@ function ff_scalarproduct_and_madd_int16_neon, export=1
         vst1.16         {q10},     [r12,:128]!
         subs            r3,  r3,   #16
         vst1.16         {q13},     [r12,:128]!
-        bgt             1b
+        bne             1b
 
         vpadd.s32       d16, d0,   d1
         vpadd.s32       d17, d2,   d3

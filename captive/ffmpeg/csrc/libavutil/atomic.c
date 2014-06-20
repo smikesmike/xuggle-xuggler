@@ -18,7 +18,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "config.h"
 #include "atomic.h"
 
 #if !HAVE_ATOMICS_NATIVE
@@ -97,16 +96,13 @@ void *avpriv_atomic_ptr_cas(void * volatile *ptr, void *oldval, void *newval)
     return *ptr;
 }
 
-#else /* HAVE_THREADS */
+#else
 
-/* This should never trigger, unless a new threading implementation
- * without correct atomics dependencies in configure or a corresponding
- * atomics implementation is added. */
 #error "Threading is enabled, but there is no implementation of atomic operations available"
 
 #endif /* HAVE_PTHREADS */
 
-#endif /* !HAVE_ATOMICS_NATIVE */
+#endif /* !HAVE_MEMORYBARRIER && !HAVE_SYNC_VAL_COMPARE_AND_SWAP && !HAVE_MACHINE_RW_BARRIER */
 
 #ifdef TEST
 #include "avassert.h"

@@ -1549,11 +1549,10 @@ static void render_slice(Vp3DecodeContext *s, int slice)
                             uint8_t *temp= s->edge_emu_buffer;
                             if(stride<0) temp -= 8*stride;
 
-                            s->vdsp.emulated_edge_mc(temp, motion_source,
-                                                     stride, stride,
+                            s->vdsp.emulated_edge_mc(temp, stride,
+                                                     motion_source, stride,
                                                      9, 9, src_x, src_y,
-                                                     plane_width,
-                                                     plane_height);
+                                                     plane_width, plane_height);
                             motion_source= temp;
                         }
                     }
@@ -1705,10 +1704,10 @@ static av_cold int vp3_decode_init(AVCodecContext *avctx)
     ff_vp3dsp_init(&s->vp3dsp, avctx->flags);
 
     for (i = 0; i < 64; i++) {
-#define TRANSPOSE(x) (x >> 3) | ((x & 7) << 3)
-        s->idct_permutation[i] = TRANSPOSE(i);
-        s->idct_scantable[i]   = TRANSPOSE(ff_zigzag_direct[i]);
-#undef TRANSPOSE
+#define T(x) (x >> 3) | ((x & 7) << 3)
+        s->idct_permutation[i] = T(i);
+        s->idct_scantable[i] = T(ff_zigzag_direct[i]);
+#undef T
     }
 
     /* initialize to an impossible value which will force a recalculation
@@ -2197,7 +2196,6 @@ static int theora_decode_header(AVCodecContext *avctx, GetBitContext *gb)
     Vp3DecodeContext *s = avctx->priv_data;
     int visible_width, visible_height, colorspace;
     int offset_x = 0, offset_y = 0;
-    int ret;
     AVRational fps, aspect;
 
     s->theora = get_bits_long(gb, 24);
@@ -2213,6 +2211,12 @@ static int theora_decode_header(AVCodecContext *avctx, GetBitContext *gb)
 
     visible_width  = s->width  = get_bits(gb, 16) << 4;
     visible_height = s->height = get_bits(gb, 16) << 4;
+
+    if(av_image_check_size(s->width, s->height, 0, avctx)){
+        av_log(avctx, AV_LOG_ERROR, "Invalid dimensions (%dx%d)\n", s->width, s->height);
+        s->width= s->height= 0;
+        return -1;
+    }
 
     if (s->theora >= 0x030200) {
         visible_width  = get_bits_long(gb, 24);
@@ -2264,11 +2268,9 @@ static int theora_decode_header(AVCodecContext *avctx, GetBitContext *gb)
     if (   visible_width  <= s->width  && visible_width  > s->width-16
         && visible_height <= s->height && visible_height > s->height-16
         && !offset_x && (offset_y == s->height - visible_height))
-        ret = ff_set_dimensions(avctx, visible_width, visible_height);
+        avcodec_set_dimensions(avctx, visible_width, visible_height);
     else
-        ret = ff_set_dimensions(avctx, s->width, s->height);
-    if (ret < 0)
-        return ret;
+        avcodec_set_dimensions(avctx, s->width, s->height);
 
     if (colorspace == 1) {
         avctx->color_primaries = AVCOL_PRI_BT470M;

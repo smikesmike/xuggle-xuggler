@@ -37,7 +37,9 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
         return AVERROR(ENOMEM);
     }
     av_frame_copy_props(out, in);
-    av_frame_copy(out, in);
+    av_image_copy(out->data, out->linesize, (const uint8_t**) in->data, in->linesize,
+                  in->format, in->width, in->height);
+
     av_frame_free(&in);
     return ff_filter_frame(outlink, out);
 }
@@ -59,7 +61,7 @@ static const AVFilterPad avfilter_vf_copy_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_copy = {
+AVFilter avfilter_vf_copy = {
     .name        = "copy",
     .description = NULL_IF_CONFIG_SMALL("Copy the input video unchanged to the output."),
     .inputs      = avfilter_vf_copy_inputs,

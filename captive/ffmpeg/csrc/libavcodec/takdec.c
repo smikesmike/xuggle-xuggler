@@ -690,8 +690,7 @@ static int tak_decode_frame(AVCodecContext *avctx, void *data,
         hsize = get_bits_count(gb) / 8;
         if (ff_tak_check_crc(pkt->data, hsize)) {
             av_log(avctx, AV_LOG_ERROR, "CRC error\n");
-            if (avctx->err_recognition & AV_EF_EXPLODE)
-                return AVERROR_INVALIDDATA;
+            return AVERROR_INVALIDDATA;
         }
     }
 
@@ -721,9 +720,11 @@ static int tak_decode_frame(AVCodecContext *avctx, void *data,
         return AVERROR_INVALIDDATA;
     }
 
-    avctx->bits_per_raw_sample = s->ti.bps;
-    if ((ret = set_bps_params(avctx)) < 0)
-        return ret;
+    if (s->ti.bps != avctx->bits_per_raw_sample) {
+        avctx->bits_per_raw_sample = s->ti.bps;
+        if ((ret = set_bps_params(avctx)) < 0)
+            return ret;
+    }
     if (s->ti.sample_rate != avctx->sample_rate) {
         avctx->sample_rate = s->ti.sample_rate;
         set_sample_rate_params(avctx);
@@ -864,8 +865,7 @@ static int tak_decode_frame(AVCodecContext *avctx, void *data,
         if (ff_tak_check_crc(pkt->data + hsize,
                              get_bits_count(gb) / 8 - hsize)) {
             av_log(avctx, AV_LOG_ERROR, "CRC error\n");
-            if (avctx->err_recognition & AV_EF_EXPLODE)
-                return AVERROR_INVALIDDATA;
+            return AVERROR_INVALIDDATA;
         }
     }
 

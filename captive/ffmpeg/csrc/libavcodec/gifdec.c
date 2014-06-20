@@ -64,6 +64,7 @@ typedef struct GifState {
     int stored_bg_color;
 
     GetByteContext gb;
+    /* LZW compatible decoder */
     LZWState *lzw;
 
     /* aux buffers */
@@ -139,11 +140,11 @@ static int gif_read_image(GifState *s, AVFrame *frame)
     if (bytestream2_get_bytes_left(&s->gb) < 9)
         return AVERROR_INVALIDDATA;
 
-    left   = bytestream2_get_le16u(&s->gb);
-    top    = bytestream2_get_le16u(&s->gb);
-    width  = bytestream2_get_le16u(&s->gb);
+    left = bytestream2_get_le16u(&s->gb);
+    top = bytestream2_get_le16u(&s->gb);
+    width = bytestream2_get_le16u(&s->gb);
     height = bytestream2_get_le16u(&s->gb);
-    flags  = bytestream2_get_byteu(&s->gb);
+    flags = bytestream2_get_byteu(&s->gb);
     is_interleaved = flags & 0x40;
     has_local_palette = flags & 0x80;
     bits_per_pixel = (flags & 0x07) + 1;
@@ -180,14 +181,10 @@ static int gif_read_image(GifState *s, AVFrame *frame)
 
     /* verify that all the image is inside the screen dimensions */
     if (left + width > s->screen_width ||
-        top + height > s->screen_height) {
-        av_log(s->avctx, AV_LOG_ERROR, "image is outside the screen dimensions.\n");
+        top + height > s->screen_height)
         return AVERROR_INVALIDDATA;
-    }
-    if (width <= 0 || height <= 0) {
-        av_log(s->avctx, AV_LOG_ERROR, "Invalid image dimensions.\n");
+    if (width <= 0 || height <= 0)
         return AVERROR_INVALIDDATA;
-    }
 
     /* process disposal method */
     if (s->gce_prev_disposal == GCE_DISPOSAL_BACKGROUND) {
@@ -237,12 +234,8 @@ static int gif_read_image(GifState *s, AVFrame *frame)
     pass = 0;
     y1 = 0;
     for (y = 0; y < height; y++) {
-        int count = ff_lzw_decode(s->lzw, s->idx_line, width);
-        if (count != width) {
-            if (count)
-                av_log(s->avctx, AV_LOG_ERROR, "LZW decode failed\n");
+        if (ff_lzw_decode(s->lzw, s->idx_line, width) == 0)
             goto decode_tail;
-        }
 
         pr = ptr + width;
 
@@ -305,7 +298,7 @@ static int gif_read_extension(GifState *s)
         return AVERROR_INVALIDDATA;
 
     ext_code = bytestream2_get_byteu(&s->gb);
-    ext_len  = bytestream2_get_byteu(&s->gb);
+    ext_len = bytestream2_get_byteu(&s->gb);
 
     av_dlog(s->avctx, "ext_code=0x%x len=%d\n", ext_code, ext_len);
 
@@ -319,7 +312,7 @@ static int gif_read_extension(GifState *s)
         if (bytestream2_get_bytes_left(&s->gb) < 5)
             return AVERROR_INVALIDDATA;
 
-        gce_flags    = bytestream2_get_byteu(&s->gb);
+        gce_flags = bytestream2_get_byteu(&s->gb);
         bytestream2_skipu(&s->gb, 2);    // delay during which the frame is shown
         gce_transparent_index = bytestream2_get_byteu(&s->gb);
         if (gce_flags & 0x01)
@@ -373,7 +366,7 @@ static int gif_read_header1(GifState *s)
 
     /* read screen header */
     s->transparent_color_index = -1;
-    s->screen_width  = bytestream2_get_le16u(&s->gb);
+    s->screen_width = bytestream2_get_le16u(&s->gb);
     s->screen_height = bytestream2_get_le16u(&s->gb);
 
     v = bytestream2_get_byteu(&s->gb);
@@ -407,7 +400,7 @@ static int gif_read_header1(GifState *s)
 
 static int gif_parse_next_image(GifState *s, AVFrame *frame)
 {
-    while (bytestream2_get_bytes_left(&s->gb) > 0) {
+    while (bytestream2_get_bytes_left(&s->gb)) {
         int code = bytestream2_get_byte(&s->gb);
         int ret;
 
@@ -470,8 +463,9 @@ static int gif_decode_frame(AVCodecContext *avctx, void *data, int *got_frame, A
         if ((ret = gif_read_header1(s)) < 0)
             return ret;
 
-        if ((ret = ff_set_dimensions(avctx, s->screen_width, s->screen_height)) < 0)
+        if ((ret = av_image_check_size(s->screen_width, s->screen_height, 0, avctx)) < 0)
             return ret;
+        avcodec_set_dimensions(avctx, s->screen_width, s->screen_height);
 
         av_frame_unref(s->frame);
         if ((ret = ff_get_buffer(avctx, s->frame, 0)) < 0)
@@ -505,7 +499,7 @@ static int gif_decode_frame(AVCodecContext *avctx, void *data, int *got_frame, A
         return ret;
     *got_frame = 1;
 
-    return bytestream2_tell(&s->gb);
+    return avpkt->size;
 }
 
 static av_cold int gif_decode_close(AVCodecContext *avctx)

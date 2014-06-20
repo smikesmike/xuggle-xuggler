@@ -138,12 +138,10 @@ static int pmp_packet(AVFormatContext *s, AVPacket *pkt)
     if (pmp->cur_stream == 0) {
         int num_packets;
         pmp->audio_packets = avio_r8(pb);
-
         if (!pmp->audio_packets) {
-            av_log(s, AV_LOG_ERROR, "No audio packets.\n");
-            return AVERROR_INVALIDDATA;
+            avpriv_request_sample(s, "0 audio packets");
+            return AVERROR_PATCHWELCOME;
         }
-
         num_packets = (pmp->num_streams - 1) * pmp->audio_packets + 1;
         avio_skip(pb, 8);
         pmp->current_packet = 0;
@@ -160,6 +158,10 @@ static int pmp_packet(AVFormatContext *s, AVPacket *pkt)
     ret = av_get_packet(pb, pkt, pmp->packet_sizes[pmp->current_packet]);
     if (ret >= 0) {
         ret = 0;
+        // FIXME: this is a hack that should be removed once
+        // compute_pkt_fields() can handle timestamps properly
+        if (pmp->cur_stream == 0)
+            pkt->dts = s->streams[0]->cur_dts++;
         pkt->stream_index = pmp->cur_stream;
     }
     if (pmp->current_packet % pmp->audio_packets == 0)

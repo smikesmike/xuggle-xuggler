@@ -42,17 +42,11 @@ static void FUNCC(OPNAME ## h264_chroma_mc1)(uint8_t *_dst/*align 8*/, uint8_t *
             dst+= stride;\
             src+= stride;\
         }\
-    } else if (B + C) {\
+    }else{\
         const int E= B+C;\
         const int step= C ? stride : 1;\
         for(i=0; i<h; i++){\
             OP(dst[0], (A*src[0] + E*src[step+0]));\
-            dst+= stride;\
-            src+= stride;\
-        }\
-    } else {\
-        for(i=0; i<h; i++){\
-            OP(dst[0], (A*src[0]));\
             dst+= stride;\
             src+= stride;\
         }\
@@ -77,7 +71,7 @@ static void FUNCC(OPNAME ## h264_chroma_mc2)(uint8_t *_dst/*align 8*/, uint8_t *
             dst+= stride;\
             src+= stride;\
         }\
-    } else if (B + C) {\
+    }else{\
         const int E= B+C;\
         const int step= C ? stride : 1;\
         for(i=0; i<h; i++){\
@@ -85,13 +79,6 @@ static void FUNCC(OPNAME ## h264_chroma_mc2)(uint8_t *_dst/*align 8*/, uint8_t *
             OP(dst[1], (A*src[1] + E*src[step+1]));\
             dst+= stride;\
             src+= stride;\
-        }\
-    } else {\
-        for ( i = 0; i < h; i++){\
-            OP(dst[0], A * src[0]);\
-            OP(dst[1], A * src[1]);\
-            dst += stride;\
-            src += stride;\
         }\
     }\
 }\
@@ -117,7 +104,7 @@ static void FUNCC(OPNAME ## h264_chroma_mc4)(uint8_t *_dst/*align 8*/, uint8_t *
             dst+= stride;\
             src+= stride;\
         }\
-    } else if (B + C) {\
+    }else{\
         const int E= B+C;\
         const int step= C ? stride : 1;\
         for(i=0; i<h; i++){\
@@ -127,15 +114,6 @@ static void FUNCC(OPNAME ## h264_chroma_mc4)(uint8_t *_dst/*align 8*/, uint8_t *
             OP(dst[3], (A*src[3] + E*src[step+3]));\
             dst+= stride;\
             src+= stride;\
-        }\
-    } else {\
-        for ( i = 0; i < h; i++){\
-            OP(dst[0], A * src[0]);\
-            OP(dst[1], A * src[1]);\
-            OP(dst[2], A * src[2]);\
-            OP(dst[3], A * src[3]);\
-            dst += stride;\
-            src += stride;\
         }\
     }\
 }\
@@ -165,7 +143,7 @@ static void FUNCC(OPNAME ## h264_chroma_mc8)(uint8_t *_dst/*align 8*/, uint8_t *
             dst+= stride;\
             src+= stride;\
         }\
-    } else if (B + C) {\
+    }else{\
         const int E= B+C;\
         const int step= C ? stride : 1;\
         for(i=0; i<h; i++){\
@@ -179,19 +157,6 @@ static void FUNCC(OPNAME ## h264_chroma_mc8)(uint8_t *_dst/*align 8*/, uint8_t *
             OP(dst[7], (A*src[7] + E*src[step+7]));\
             dst+= stride;\
             src+= stride;\
-        }\
-    } else {\
-        for ( i = 0; i < h; i++){\
-            OP(dst[0], A * src[0]);\
-            OP(dst[1], A * src[1]);\
-            OP(dst[2], A * src[2]);\
-            OP(dst[3], A * src[3]);\
-            OP(dst[4], A * src[4]);\
-            OP(dst[5], A * src[5]);\
-            OP(dst[6], A * src[6]);\
-            OP(dst[7], A * src[7]);\
-            dst += stride;\
-            src += stride;\
         }\
     }\
 }

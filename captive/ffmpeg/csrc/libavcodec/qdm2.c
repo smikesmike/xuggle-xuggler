@@ -1750,19 +1750,12 @@ static void qdm2_synthesis_filter(QDM2Context *q, int index)
  *
  * @param q    context
  */
-static av_cold void qdm2_init_static_data(void) {
-    static int done;
-
-    if(done)
-        return;
-
+static av_cold void qdm2_init_static_data(AVCodec *codec) {
     qdm2_init_vlc();
     ff_mpa_synth_init_float(ff_mpa_synth_window_float);
     softclip_table_init();
     rnd_table_init();
     init_noise_samples();
-
-    done = 1;
 }
 
 /**
@@ -1774,8 +1767,6 @@ static av_cold int qdm2_decode_init(AVCodecContext *avctx)
     uint8_t *extradata;
     int extradata_size;
     int tmp_val, tmp, size;
-
-    qdm2_init_static_data();
 
     /* extradata parsing
 
@@ -2053,6 +2044,7 @@ AVCodec ff_qdm2_decoder = {
     .id               = AV_CODEC_ID_QDM2,
     .priv_data_size   = sizeof(QDM2Context),
     .init             = qdm2_decode_init,
+    .init_static_data = qdm2_init_static_data,
     .close            = qdm2_decode_close,
     .decode           = qdm2_decode_frame,
     .capabilities     = CODEC_CAP_DR1,

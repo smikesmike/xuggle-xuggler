@@ -20,7 +20,6 @@
  */
 
 #include <string.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <math.h>
@@ -49,8 +48,8 @@
 #include "libavutil/dict.h"
 #include "libavutil/opt.h"
 #include "libavutil/cpu.h"
-#include "libavutil/ffversion.h"
 #include "cmdutils.h"
+#include "version.h"
 #if CONFIG_NETWORK
 #include "libavformat/network.h"
 #endif
@@ -58,6 +57,10 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #endif
+#if CONFIG_OPENCL
+#include "libavutil/opencl.h"
+#endif
+
 
 static int init_report(const char *env);
 
@@ -65,8 +68,9 @@ struct SwsContext *sws_opts;
 AVDictionary *swr_opts;
 AVDictionary *format_opts, *codec_opts, *resample_opts;
 
+const int this_year = 2013;
+
 static FILE *report_file;
-int hide_banner = 0;
 
 void init_opts(void)
 {
@@ -492,9 +496,6 @@ void parse_loglevel(int argc, char **argv, const OptionDef *options)
             fflush(report_file);
         }
     }
-    idx = locate_option(argc, argv, options, "hide_banner");
-    if (idx)
-        hide_banner = 1;
 }
 
 static const AVOption *opt_find(void *obj, const char *name, const char *unit,
@@ -985,6 +986,26 @@ int opt_timelimit(void *optctx, const char *opt, const char *arg)
     return 0;
 }
 
+#if CONFIG_OPENCL
+int opt_opencl(void *optctx, const char *opt, const char *arg)
+{
+    char *key, *value;
+    const char *opts = arg;
+    int ret = 0;
+    while (*opts) {
+        ret = av_opt_get_key_value(&opts, "=", ":", 0, &key, &value);
+        if (ret < 0)
+            return ret;
+        ret = av_opencl_set_option(key, value);
+        if (ret < 0)
+            return ret;
+        if (*opts)
+            opts++;
+    }
+    return ret;
+}
+#endif
+
 void print_error(const char *filename, int err)
 {
     char errbuf[128];
@@ -1050,7 +1071,7 @@ static void print_program_info(int flags, int level)
     av_log(NULL, level, "%s version " FFMPEG_VERSION, program_name);
     if (flags & SHOW_COPYRIGHT)
         av_log(NULL, level, " Copyright (c) %d-%d the FFmpeg developers",
-               program_birth_year, CONFIG_THIS_YEAR);
+               program_birth_year, this_year);
     av_log(NULL, level, "\n");
     av_log(NULL, level, "%sbuilt on %s %s with %s\n",
            indent, __DATE__, __TIME__, CC_IDENT);
@@ -1058,36 +1079,10 @@ static void print_program_info(int flags, int level)
     av_log(NULL, level, "%sconfiguration: " FFMPEG_CONFIGURATION "\n", indent);
 }
 
-static void print_buildconf(int flags, int level)
-{
-    const char *indent = flags & INDENT ? "  " : "";
-    char str[] = { FFMPEG_CONFIGURATION };
-    char *conflist, *remove_tilde, *splitconf;
-
-    // Change all the ' --' strings to '~--' so that
-    // they can be identified as tokens.
-    while ((conflist = strstr(str, " --")) != NULL) {
-        strncpy(conflist, "~--", 3);
-    }
-
-    // Compensate for the weirdness this would cause
-    // when passing 'pkg-config --static'.
-    while ((remove_tilde = strstr(str, "pkg-config~")) != NULL) {
-        strncpy(remove_tilde, "pkg-config ", 11);
-    }
-
-    splitconf = strtok(str, "~");
-    av_log(NULL, level, "\n%sconfiguration:\n", indent);
-    while (splitconf != NULL) {
-        av_log(NULL, level, "%s%s%s\n", indent, indent, splitconf);
-        splitconf = strtok(NULL, "~");
-    }
-}
-
 void show_banner(int argc, char **argv, const OptionDef *options)
 {
     int idx = locate_option(argc, argv, options, "version");
-    if (hide_banner || idx)
+    if (idx)
         return;
 
     print_program_info (INDENT|SHOW_COPYRIGHT, AV_LOG_INFO);
@@ -1100,14 +1095,6 @@ int show_version(void *optctx, const char *opt, const char *arg)
     av_log_set_callback(log_callback_help);
     print_program_info (0           , AV_LOG_INFO);
     print_all_libs_info(SHOW_VERSION, AV_LOG_INFO);
-
-    return 0;
-}
-
-int show_buildconf(void *optctx, const char *opt, const char *arg)
-{
-    av_log_set_callback(log_callback_help);
-    print_buildconf      (INDENT|0, AV_LOG_INFO);
 
     return 0;
 }
@@ -1531,7 +1518,7 @@ int show_filters(void *optctx, const char *opt, const char *arg)
     return 0;
 }
 
-int show_colors(void *optctx, const char *opt, const char *arg)
+void show_colors(void *optctx, const char *opt, const char *arg)
 {
     const char *name;
     const uint8_t *rgb;
@@ -1541,8 +1528,6 @@ int show_colors(void *optctx, const char *opt, const char *arg)
 
     for (i = 0; name = av_get_known_color_name(i, &rgb); i++)
         printf("%-32s #%02x%02x%02x\n", name, rgb[0], rgb[1], rgb[2]);
-
-    return 0;
 }
 
 int show_pix_fmts(void *optctx, const char *opt, const char *arg)
@@ -1804,7 +1789,7 @@ int read_yesno(void)
 int cmdutils_read_file(const char *filename, char **bufptr, size_t *size)
 {
     int ret;
-    FILE *f = av_fopen_utf8(filename, "rb");
+    FILE *f = fopen(filename, "rb");
 
     if (!f) {
         av_log(NULL, AV_LOG_ERROR, "Cannot read file '%s': %s\n", filename,

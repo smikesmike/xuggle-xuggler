@@ -28,7 +28,6 @@
 
 #include "avcodec.h"
 #include "get_bits.h"
-#include "internal.h"
 
 #include "vp56.h"
 #include "vp56data.h"
@@ -67,9 +66,7 @@ static int vp5_parse_header(VP56Context *s, const uint8_t *buf, int buf_size)
         if (!s->macroblocks || /* first frame */
             16*cols != s->avctx->coded_width ||
             16*rows != s->avctx->coded_height) {
-            int ret = ff_set_dimensions(s->avctx, 16 * cols, 16 * rows);
-            if (ret < 0)
-                return ret;
+            avcodec_set_dimensions(s->avctx, 16*cols, 16*rows);
             return VP56_SIZE_CHANGE;
         }
     } else if (!s->macroblocks)

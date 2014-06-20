@@ -226,8 +226,10 @@ int ffurl_shutdown(URLContext *h, int flags);
 
 /**
  * Register the URLProtocol protocol.
+ *
+ * @param size the size of the URLProtocol struct referenced
  */
-int ffurl_register_protocol(URLProtocol *protocol);
+int ffurl_register_protocol(URLProtocol *protocol, int size);
 
 /**
  * Check if the user has requested to interrup a blocking function

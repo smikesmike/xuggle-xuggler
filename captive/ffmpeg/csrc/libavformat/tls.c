@@ -24,9 +24,6 @@
 #include "libavutil/avstring.h"
 #include "libavutil/opt.h"
 #include "libavutil/parseutils.h"
-#include "network.h"
-#include "os_support.h"
-#include "internal.h"
 #if CONFIG_GNUTLS
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
@@ -53,6 +50,9 @@
             SSL_CTX_free(c->ctx); \
     } while (0)
 #endif
+#include "network.h"
+#include "os_support.h"
+#include "internal.h"
 #if HAVE_POLL_H
 #include <poll.h>
 #endif

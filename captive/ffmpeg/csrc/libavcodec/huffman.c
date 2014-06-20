@@ -24,8 +24,6 @@
  * huffman tree builder and VLC generator
  */
 
-#include <stdint.h>
-
 #include "avcodec.h"
 #include "get_bits.h"
 #include "huffman.h"
@@ -52,23 +50,18 @@ static void heap_sift(HeapElem *h, int root, int size)
     }
 }
 
-int ff_huff_gen_len_table(uint8_t *dst, const uint64_t *stats, int size)
+void ff_huff_gen_len_table(uint8_t *dst, const uint64_t *stats)
 {
-    HeapElem *h  = av_malloc(sizeof(*h) * size);
-    int *up      = av_malloc(sizeof(*up) * 2 * size);
-    uint8_t *len = av_malloc(sizeof(*len) * 2 * size);
+    HeapElem h[256];
+    int up[2*256];
+    int len[2*256];
     int offset, i, next;
-    int ret = 0;
-
-    if (!h || !up || !len) {
-        ret = AVERROR(ENOMEM);
-        goto end;
-    }
+    int size = 256;
 
     for (offset = 1; ; offset <<= 1) {
         for (i=0; i < size; i++) {
             h[i].name = i;
-            h[i].val = (stats[i] << 14) + offset;
+            h[i].val = (stats[i] << 8) + offset;
         }
         for (i = size / 2 - 1; i >= 0; i--)
             heap_sift(h, i, size);
@@ -94,11 +87,6 @@ int ff_huff_gen_len_table(uint8_t *dst, const uint64_t *stats, int size)
         }
         if (i==size) break;
     }
-end:
-    av_free(h);
-    av_free(up);
-    av_free(len);
-    return ret;
 }
 
 static void get_tree_codes(uint32_t *bits, int16_t *lens, uint8_t *xlat,

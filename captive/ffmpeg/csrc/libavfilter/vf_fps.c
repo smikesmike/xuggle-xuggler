@@ -26,7 +26,6 @@
  */
 
 #include <float.h>
-#include <stdint.h>
 
 #include "libavutil/common.h"
 #include "libavutil/fifo.h"
@@ -45,6 +44,7 @@ typedef struct FPSContext {
 
     /* timestamps in input timebase */
     int64_t first_pts;      ///< pts of the first frame that arrived on this filter
+    int64_t pts;            ///< pts of the first frame currently in the fifo
 
     double start_time;      ///< pts, in seconds, of the expected first frame
 
@@ -82,6 +82,7 @@ static av_cold int init(AVFilterContext *ctx)
     if (!(s->fifo = av_fifo_alloc(2*sizeof(AVFrame*))))
         return AVERROR(ENOMEM);
 
+    s->pts          = AV_NOPTS_VALUE;
     s->first_pts    = AV_NOPTS_VALUE;
 
     av_log(ctx, AV_LOG_VERBOSE, "fps=%d/%d\n", s->framerate.num, s->framerate.den);
@@ -177,7 +178,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *buf)
 
     s->frames_in++;
     /* discard frames until we get the first timestamp */
-    if (s->first_pts == AV_NOPTS_VALUE) {
+    if (s->pts == AV_NOPTS_VALUE) {
         if (buf->pts != AV_NOPTS_VALUE) {
             ret = write_to_fifo(s->fifo, buf);
             if (ret < 0)
@@ -186,13 +187,13 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *buf)
             if (s->start_time != DBL_MAX && s->start_time != AV_NOPTS_VALUE) {
                 double first_pts = s->start_time * AV_TIME_BASE;
                 first_pts = FFMIN(FFMAX(first_pts, INT64_MIN), INT64_MAX);
-                s->first_pts = av_rescale_q(first_pts, AV_TIME_BASE_Q,
+                s->first_pts = s->pts = av_rescale_q(first_pts, AV_TIME_BASE_Q,
                                                      inlink->time_base);
                 av_log(ctx, AV_LOG_VERBOSE, "Set first pts to (in:%"PRId64" out:%"PRId64")\n",
                        s->first_pts, av_rescale_q(first_pts, AV_TIME_BASE_Q,
                                                   outlink->time_base));
             } else {
-                s->first_pts = buf->pts;
+                s->first_pts = s->pts = buf->pts;
             }
         } else {
             av_log(ctx, AV_LOG_WARNING, "Discarding initial frame(s) with no "
@@ -209,8 +210,8 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *buf)
     }
 
     /* number of output frames */
-    delta = av_rescale_q_rnd(buf->pts - s->first_pts, inlink->time_base,
-                             outlink->time_base, s->rounding) - s->frames_out ;
+    delta = av_rescale_q_rnd(buf->pts - s->pts, inlink->time_base,
+                             outlink->time_base, s->rounding);
 
     if (delta < 1) {
         /* drop the frame and everything buffered except the first */
@@ -265,6 +266,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *buf)
     flush_fifo(s->fifo);
 
     ret = write_to_fifo(s->fifo, buf);
+    s->pts = s->first_pts + av_rescale_q(s->frames_out, outlink->time_base, inlink->time_base);
 
     return ret;
 }
@@ -288,7 +290,7 @@ static const AVFilterPad avfilter_vf_fps_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_fps = {
+AVFilter avfilter_vf_fps = {
     .name        = "fps",
     .description = NULL_IF_CONFIG_SMALL("Force constant framerate."),
     .init        = init,

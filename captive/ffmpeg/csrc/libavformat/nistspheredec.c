@@ -36,7 +36,7 @@ static int nist_read_header(AVFormatContext *s)
 {
     char buffer[32], coding[32] = "pcm", format[32] = "01";
     int bps = 0, be = 0;
-    int32_t header_size = -1;
+    int32_t header_size;
     AVStream *st;
 
     st = avformat_new_stream(s, NULL);
@@ -108,11 +108,8 @@ static int nist_read_header(AVFormatContext *s)
             sscanf(buffer, "%*s %*s %"SCNd32, &st->codec->bits_per_coded_sample);
         } else {
             char key[32], value[32];
-            if (sscanf(buffer, "%31s %*s %31s", key, value) == 3) {
-                av_dict_set(&s->metadata, key, value, AV_DICT_APPEND);
-            } else {
-                av_log(s, AV_LOG_ERROR, "Failed to parse '%s' as metadata\n", buffer);
-            }
+            sscanf(buffer, "%31s %*s %31s", key, value);
+            av_dict_set(&s->metadata, key, value, AV_DICT_APPEND);
         }
     }
 

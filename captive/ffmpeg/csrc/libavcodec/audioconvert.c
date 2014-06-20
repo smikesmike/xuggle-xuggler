@@ -32,8 +32,6 @@
 #include "avcodec.h"
 #include "audioconvert.h"
 
-#if FF_API_AUDIO_CONVERT
-
 struct AVAudioConvert {
     int in_channels, out_channels;
     int fmt_pair;
@@ -116,5 +114,3 @@ if(ctx->fmt_pair == ofmt + AV_SAMPLE_FMT_NB*ifmt){\
     }
     return 0;
 }
-
-#endif /* FF_API_AUDIO_CONVERT */

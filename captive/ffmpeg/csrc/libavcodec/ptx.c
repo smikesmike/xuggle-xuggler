@@ -55,9 +55,10 @@ static int ptx_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
 
     buf += offset;
 
-    if ((ret = ff_set_dimensions(avctx, w, h)) < 0)
+    if ((ret = av_image_check_size(w, h, 0, avctx)) < 0)
         return ret;
-
+    if (w != avctx->width || h != avctx->height)
+        avcodec_set_dimensions(avctx, w, h);
     if ((ret = ff_get_buffer(avctx, p, 0)) < 0)
         return ret;
 

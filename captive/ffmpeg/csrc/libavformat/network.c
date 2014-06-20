@@ -281,9 +281,7 @@ int ff_listen_bind(int fd, const struct sockaddr *addr,
 
     closesocket(fd);
 
-    if (ff_socket_nonblock(ret, 1) < 0)
-        av_log(NULL, AV_LOG_DEBUG, "ff_socket_nonblock failed\n");
-
+    ff_socket_nonblock(ret, 1);
     return ret;
 }
 
@@ -295,8 +293,7 @@ int ff_listen_connect(int fd, const struct sockaddr *addr,
     int ret;
     socklen_t optlen;
 
-    if (ff_socket_nonblock(fd, 1) < 0)
-        av_log(NULL, AV_LOG_DEBUG, "ff_socket_nonblock failed\n");
+    ff_socket_nonblock(fd, 1);
 
     while ((ret = connect(fd, addr, addrlen))) {
         ret = ff_neterrno();

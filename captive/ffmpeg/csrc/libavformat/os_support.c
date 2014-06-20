@@ -32,13 +32,13 @@
 #if !HAVE_POLL_H
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
-#endif /* HAVE_SYS_TIME_H */
+#endif
 #if HAVE_WINSOCK2_H
 #include <winsock2.h>
 #elif HAVE_SYS_SELECT_H
 #include <sys/select.h>
-#endif /* HAVE_WINSOCK2_H */
-#endif /* !HAVE_POLL_H */
+#endif
+#endif
 
 #include "network.h"
 
@@ -82,7 +82,7 @@ int ff_getaddrinfo(const char *node, const char *service,
     win_getaddrinfo = GetProcAddress(ws2mod, "getaddrinfo");
     if (win_getaddrinfo)
         return win_getaddrinfo(node, service, hints, res);
-#endif /* HAVE_WINSOCK2_H */
+#endif
 
     *res = NULL;
     sin  = av_mallocz(sizeof(struct sockaddr_in));
@@ -156,7 +156,7 @@ void ff_freeaddrinfo(struct addrinfo *res)
         win_freeaddrinfo(res);
         return;
     }
-#endif /* HAVE_WINSOCK2_H */
+#endif
 
     av_free(res->ai_canonname);
     av_free(res->ai_addr);
@@ -177,7 +177,7 @@ int ff_getnameinfo(const struct sockaddr *sa, int salen,
     win_getnameinfo = GetProcAddress(ws2mod, "getnameinfo");
     if (win_getnameinfo)
         return win_getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
-#endif /* HAVE_WINSOCK2_H */
+#endif
 
     if (sa->sa_family != AF_INET)
         return EAI_FAMILY;
@@ -208,7 +208,7 @@ int ff_getnameinfo(const struct sockaddr *sa, int salen,
 #if HAVE_GETSERVBYPORT
         if (!(flags & NI_NUMERICSERV))
             ent = getservbyport(sin->sin_port, flags & NI_DGRAM ? "udp" : "tcp");
-#endif /* HAVE_GETSERVBYPORT */
+#endif
 
         if (ent)
             snprintf(serv, servlen, "%s", ent->s_name);
@@ -238,7 +238,7 @@ const char *ff_gai_strerror(int ecode)
 #if EAI_NODATA != EAI_NONAME
     case EAI_NODATA:
         return "No address associated with hostname";
-#endif /* EAI_NODATA != EAI_NONAME */
+#endif
     case EAI_NONAME:
         return "The name does not resolve for the supplied parameters";
     case EAI_SERVICE:
@@ -261,7 +261,7 @@ int ff_socket_nonblock(int socket, int enable)
         return fcntl(socket, F_SETFL, fcntl(socket, F_GETFL) | O_NONBLOCK);
     else
         return fcntl(socket, F_SETFL, fcntl(socket, F_GETFL) & ~O_NONBLOCK);
-#endif /* HAVE_WINSOCK2_H */
+#endif
 }
 
 #if !HAVE_POLL_H
@@ -279,7 +279,7 @@ int ff_poll(struct pollfd *fds, nfds_t numfds, int timeout)
         errno = EINVAL;
         return -1;
     }
-#endif /* HAVE_WINSOCK2_H */
+#endif
 
     FD_ZERO(&read_set);
     FD_ZERO(&write_set);
@@ -294,7 +294,7 @@ int ff_poll(struct pollfd *fds, nfds_t numfds, int timeout)
             errno = EINVAL;
             return -1;
         }
-#endif /* !HAVE_WINSOCK2_H */
+#endif
 
         if (fds[i].events & POLLIN)
             FD_SET(fds[i].fd, &read_set);
@@ -336,6 +336,5 @@ int ff_poll(struct pollfd *fds, nfds_t numfds, int timeout)
 
     return rc;
 }
-#endif /* !HAVE_POLL_H */
-
+#endif /* HAVE_POLL_H */
 #endif /* CONFIG_NETWORK */

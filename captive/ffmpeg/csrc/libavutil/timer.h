@@ -32,8 +32,6 @@
 
 #include "config.h"
 
-#include "log.h"
-
 #if   ARCH_ARM
 #   include "arm/timer.h"
 #elif ARCH_BFIN

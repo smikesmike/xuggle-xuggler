@@ -347,7 +347,7 @@ static const AVFilterPad colorchannelmixer_outputs[] = {
     { NULL }
 };
 
-AVFilter ff_vf_colorchannelmixer = {
+AVFilter avfilter_vf_colorchannelmixer = {
     .name          = "colorchannelmixer",
     .description   = NULL_IF_CONFIG_SMALL("Adjust colors by mixing color channels."),
     .priv_size     = sizeof(ColorChannelMixerContext),

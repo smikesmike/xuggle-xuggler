@@ -51,7 +51,7 @@ coefs:
 .short 0x7D8A;           //cos(pi/16)
 
 #if defined(__FDPIC__) && CONFIG_SRAM
-.section .l1.data.A,"aw",@progbits
+.section .l1.data.A
 #endif
 
 vtmp: .space 256

@@ -37,14 +37,13 @@ static int alloc_and_copy(uint8_t **poutbuf, int *poutbuf_size,
 {
     uint32_t offset         = *poutbuf_size;
     uint8_t nal_header_size = offset ? 3 : 4;
-    int err;
+    void *tmp;
 
     *poutbuf_size += sps_pps_size + in_size + nal_header_size;
-    if ((err = av_reallocp(poutbuf,
-                           *poutbuf_size + FF_INPUT_BUFFER_PADDING_SIZE)) < 0) {
-        *poutbuf_size = 0;
-        return err;
-    }
+    tmp = av_realloc(*poutbuf, *poutbuf_size + FF_INPUT_BUFFER_PADDING_SIZE);
+    if (!tmp)
+        return AVERROR(ENOMEM);
+    *poutbuf = tmp;
     if (sps_pps)
         memcpy(*poutbuf + offset, sps_pps, sps_pps_size);
     memcpy(*poutbuf + sps_pps_size + nal_header_size + offset, in, in_size);
@@ -78,7 +77,7 @@ static int h264_extradata_to_annexb(AVCodecContext *avctx, const int padding)
     }
 
     while (unit_nb--) {
-        int err;
+        void *tmp;
 
         unit_size   = AV_RB16(extradata);
         total_size += unit_size + 4;
@@ -94,8 +93,12 @@ static int h264_extradata_to_annexb(AVCodecContext *avctx, const int padding)
             av_free(out);
             return AVERROR(EINVAL);
         }
-        if ((err = av_reallocp(&out, total_size + padding)) < 0)
-            return err;
+        tmp = av_realloc(out, total_size + padding);
+        if (!tmp) {
+            av_free(out);
+            return AVERROR(ENOMEM);
+        }
+        out = tmp;
         memcpy(out + total_size - unit_size - 4, nalu_header, 4);
         memcpy(out + total_size - unit_size, extradata + 2, unit_size);
         extradata += 2 + unit_size;
@@ -175,7 +178,7 @@ static int h264_mp4toannexb_filter(AVBitStreamFilterContext *bsfc,
             goto fail;
 
         /* prepend only to the first type 5 NAL unit of an IDR picture */
-        if (ctx->first_idr && (unit_type == 5 || unit_type == 7 || unit_type == 8)) {
+        if (ctx->first_idr && unit_type == 5) {
             if ((ret=alloc_and_copy(poutbuf, poutbuf_size,
                                avctx->extradata, avctx->extradata_size,
                                buf, nal_size)) < 0)
