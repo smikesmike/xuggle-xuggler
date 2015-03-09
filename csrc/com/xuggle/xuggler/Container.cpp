@@ -77,7 +77,7 @@ Container_url_write(void*h, unsigned char* buf, int size)
   {
     retval = -1;
   }
-  VS_LOG_TRACE("URLProtocolHandler[%p]->url_write(%p, %d) ==> %d", h, buf, size, retval);
+  VS_LOG_DEBUG("URLProtocolHandler[%p]->url_write(%p, %d) ==> %d", h, buf, size, retval);
   return retval;
 }
 int64_t
@@ -212,7 +212,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     return open(url, type, pContainerFormat,
       aStreamsCanBeAddedDynamically, aLookForAllStreams,
-      0, 0);
+      NULL, NULL);
   }
   int32_t
   Container :: open(const char *url,Type type,
@@ -222,7 +222,7 @@ namespace com { namespace xuggle { namespace xuggler
       IMetaData* aOptions,
       IMetaData* aUnsetOptions)
   {
-    AVDictionary *tmp=0;
+    AVDictionary *tmp= NULL;
 
     int32_t retval = -1;
 
@@ -246,8 +246,8 @@ namespace com { namespace xuggle { namespace xuggler
             0);
     if (mCustomIOHandler) {
       if (mInputBufferLength <= 0)
-        // default to 2k
-        mInputBufferLength = 2048;
+        // default to 4k
+        mInputBufferLength = 4096;
       // free and realloc the input buffer length
       uint8_t* buffer = (uint8_t*)av_malloc(mInputBufferLength);
       if (!buffer)
@@ -387,10 +387,10 @@ namespace com { namespace xuggle { namespace xuggler
       AVDictionary** options)
   {
     int32_t retval = -1;
-    AVInputFormat *inputFormat = 0;
+    AVInputFormat *inputFormat = NULL;
 
     try {
-      // We have prealloced the format
+      // We have preallocated the format
       if (mFormat)
       {
         inputFormat = mFormat->getInputFormat();
@@ -410,7 +410,6 @@ namespace com { namespace xuggle { namespace xuggler
             inputFormat,
             options
         );
-
       if (retval >= 0) {
         if (!mFormatContext && mFormatContext->iformat) {
           // we didn't know the format before, but we sure as hell know it now
@@ -430,7 +429,7 @@ namespace com { namespace xuggle { namespace xuggler
 
         if (aLookForAllStreams)
         {
-          retval = queryStreamMetaData();
+           retval = queryStreamMetaData();
         }
       } else {
         VS_LOG_DEBUG("Could not open output url: %s", url);
@@ -448,7 +447,7 @@ namespace com { namespace xuggle { namespace xuggler
       AVDictionary** options)
   {
     int32_t retval = -1;
-    AVOutputFormat *outputFormat = 0;
+    AVOutputFormat *outputFormat = NULL;
 
     try {
       if (mFormat)
@@ -457,7 +456,7 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (!outputFormat) {
         // guess it.
-        outputFormat = av_guess_format(0, url, 0);
+        outputFormat = av_guess_format(NULL, url, NULL);
         RefPointer<ContainerFormat> format = ContainerFormat::make();
         if (!format)
           throw std::bad_alloc();
@@ -634,28 +633,28 @@ namespace com { namespace xuggle { namespace xuggler
     Packet* pkt = dynamic_cast<Packet*>(ipkt);
     if (mFormatContext && pkt)
     {
-      AVPacket tmpPacket;
-      AVPacket* packet=0;
-
-      packet = &tmpPacket;
-      av_init_packet(packet);
-      pkt->reset();
+//      AVPacket tmpPacket;
+      AVPacket packet;
+//
+//      packet = &tmpPacket;
+      av_init_packet(&packet);
+//      pkt->reset();
       int32_t numReads=0;
       do
       {
         retval = av_read_frame(mFormatContext,
-            packet);
+            &packet);
         ++numReads;
       }
       while (retval == AVERROR(EAGAIN) &&
           (mReadRetryCount < 0 || numReads <= mReadRetryCount));
 
       if (retval >= 0)
-        pkt->wrapAVPacket(packet);
-      av_free_packet(packet);
+        pkt->wrapAVPacket(&packet);
+        av_free_packet(&packet);
 
-      // Get a pointer to the wrapped packet
-      packet = pkt->getAVPacket();
+//      // Get a pointer to the wrapped packet
+//      packet = pkt->getAVPacket();
       // and dump it's contents
       VS_LOG_TRACE("read-packet: %lld, %lld, %d, %d, %d, %lld, %lld: %p",
           pkt->getDts(),
@@ -665,7 +664,7 @@ namespace com { namespace xuggle { namespace xuggler
           pkt->getSize(),
           pkt->getDuration(),
           pkt->getPosition(),
-          packet->data);
+          pkt->getAVPacket()->data);
       
       // and let's try to set the packet time base if known
       if (pkt->getStreamIndex() >= 0)
@@ -727,14 +726,16 @@ namespace com { namespace xuggle { namespace xuggler
 
       // Create a new packet that wraps the input data; this
       // just copies meta-data
-      RefPointer<Packet> outPacket = Packet::make(pkt, false);
+      AVPacket packet;
+      av_copy_packet(&packet, pkt->getAVPacket());
+      //RefPointer<Packet> outPacket = Packet::make(pkt, true);
       // Stamp it with the stream data
-      if (stream->stampOutputPacket(outPacket.value()) <0)
+      if (stream->stampOutputPacket(pkt) <0)
         throw std::runtime_error("could not stamp output packet");
       
-      AVPacket *packet = 0;
-      packet = outPacket->getAVPacket();
-      if (!packet || !packet->data)
+      //AVPacket *packet = NULL;
+      //packet = outPacket->getAVPacket();
+      if (!packet.data)
         throw std::runtime_error("no data in packet");
       
       /*
@@ -748,11 +749,11 @@ namespace com { namespace xuggle { namespace xuggler
           pkt->getPosition(),
           packet->data);
           */
-      
+          
       if (forceInterleave)
-        retval =  av_interleaved_write_frame(mFormatContext, packet);
+        retval =  av_interleaved_write_frame(mFormatContext, &packet);
       else
-        retval = av_write_frame(mFormatContext, packet);
+        retval = av_write_frame(mFormatContext, &packet);
     }
     catch (std::exception & e)
     {
@@ -883,9 +884,9 @@ namespace com { namespace xuggle { namespace xuggler
     {
       if (!mIsMetaDataQueried)
       {
-        retval = avformat_find_stream_info(mFormatContext, 0);
+        retval = avformat_find_stream_info(mFormatContext, NULL);
         // for shits and giggles, dump the ffmpeg output
-        // dump_format(mFormatContext, 0, (mFormatContext ? mFormatContext->filename :0), 0);
+        //av_dump_format(mFormatContext, 0, (mFormatContext ? mFormatContext->filename :0), 0);
         mIsMetaDataQueried = true;
       } else {
         retval = 0;
@@ -1324,7 +1325,7 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: setForcedAudioCodec(ICodec::ID id)
   {
     int32_t retval=-1;
-    if (mFormatContext && id != ICodec::CODEC_ID_NONE)
+    if (mFormatContext && id != ICodec::AV_CODEC_ID_NONE)
     {
       RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
       if (codec && codec->getType() == ICodec::CODEC_TYPE_AUDIO)
@@ -1337,7 +1338,7 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: setForcedVideoCodec(ICodec::ID id)
   {
     int32_t retval=-1;
-    if (mFormatContext && id != ICodec::CODEC_ID_NONE)
+    if (mFormatContext && id != ICodec::AV_CODEC_ID_NONE)
     {
       RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
       if (codec && codec->getType() == ICodec::CODEC_TYPE_VIDEO)
@@ -1350,7 +1351,7 @@ namespace com { namespace xuggle { namespace xuggler
   Container :: setForcedSubtitleCodec(ICodec::ID id)
   {
     int32_t retval=-1;
-    if (mFormatContext && id != ICodec::CODEC_ID_NONE)
+    if (mFormatContext && id != ICodec::AV_CODEC_ID_NONE)
     {
       RefPointer<ICodec> codec = ICodec::findDecodingCodec(id);
       if (codec && codec->getType() == ICodec::CODEC_TYPE_SUBTITLE)

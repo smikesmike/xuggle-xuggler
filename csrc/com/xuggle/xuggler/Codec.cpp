@@ -52,7 +52,7 @@ namespace com { namespace xuggle { namespace xuggler
   int
   Codec :: getIDAsInt()
   {
-    int retval = CODEC_ID_NONE;
+    int retval = AV_CODEC_ID_NONE;
     if (mCodec)
       retval = mCodec->id;
     return retval;

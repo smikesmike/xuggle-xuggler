@@ -72,7 +72,7 @@ namespace com { namespace xuggle { namespace xuggler
      *   That means that only getNumSamples()-startingSample
      *   samples are available in this AudioSamples collection.
      */
-    virtual short *getRawSamples(uint32_t startingSample);
+    virtual uint8_t *getRawSamples(uint32_t startingSample);
     
     /**
      * Called by decoder before decoding to ensure sufficient space

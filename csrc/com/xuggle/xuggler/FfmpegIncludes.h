@@ -38,7 +38,7 @@ extern "C"
 # endif
 #endif
 
-
+#include <libswresample/swresample.h>
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>

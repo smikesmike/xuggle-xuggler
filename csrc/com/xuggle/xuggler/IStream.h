@@ -21,6 +21,7 @@
 #define ISTREAM_H_
 #include <com/xuggle/ferry/RefCounted.h>
 #include <com/xuggle/xuggler/Xuggler.h>
+#define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
 namespace com { namespace xuggle { namespace xuggler
 {
   class IStreamCoder;
@@ -220,9 +221,13 @@ namespace com { namespace xuggle { namespace xuggler
      */
     typedef enum ParseType {
       PARSE_NONE,
-      PARSE_FULL,
-      PARSE_HEADERS,
-      PARSE_TIMESTAMPS,       
+      PARSE_FULL,       /**< full parsing and repack */
+      PARSE_HEADERS,    /**< Only parse headers, do not repack. */
+      PARSE_TIMESTAMPS, /**< full parsing and interpolation of timestamps for frames not starting on a packet boundary */
+      PARSE_FULL_ONCE,  /**< full parsing and repack of the first frame only, only implemented for H.264 currently */
+      PARSE_FULL_RAW=MKTAG(0,'R','A','W'),       /**< full parsing and repack with timestamp and position generation by parser for raw
+                                                             this assumes that each packet in the file contains no demuxer level headers and
+                                                             just codec level data, otherwise position generation would fail */       
     } ParseType;
     
     /**

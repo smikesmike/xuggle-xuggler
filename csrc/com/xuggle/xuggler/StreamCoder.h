@@ -182,6 +182,7 @@ namespace com { namespace xuggle { namespace xuggler
   private:
     Direction mDirection;
     AVCodecContext* mCodecContext;
+    SwrContext* swrContext;
     Stream* mStream; // Must not refcount this.
     com::xuggle::ferry::RefPointer<Codec> mCodec;
     bool mOpened;

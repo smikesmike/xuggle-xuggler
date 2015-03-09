@@ -38,7 +38,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual ID getID()
     {
       // Warning; this might not be protable
-      ID retval = CODEC_ID_NONE;
+      ID retval = AV_CODEC_ID_NONE;
       int id = getIDAsInt();
 
       // This cast is not defined in C++ when id is
@@ -50,7 +50,7 @@ namespace com { namespace xuggle { namespace xuggler
       if (id != (int) retval)
       {
         // we assume some back and forth conversion failed...
-        retval = CODEC_ID_NONE;
+        retval = AV_CODEC_ID_NONE;
       }
       return retval;
     }
