@@ -567,7 +567,7 @@ implements IMediaWriter
         
         // Finally MPEG4 has some code failing if the time base
         // is too aggressive...
-        if (codec.getID() == ICodec.ID.CODEC_ID_MPEG4 &&
+        if (codec.getID() == ICodec.ID.AV_CODEC_ID_MPEG4 &&
             timeBase.getDenominator() > ((1<<16)-1))
         {
           // this codec can't support that high of a frame rate

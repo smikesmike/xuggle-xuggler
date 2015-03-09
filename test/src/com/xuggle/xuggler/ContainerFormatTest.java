@@ -155,9 +155,9 @@ public class ContainerFormatTest extends TestCase
 
     assertTrue("should get at least one codec", codecs.size() > 1);
     assertTrue("should have MP3",
-        codecs.contains(ICodec.ID.CODEC_ID_MP3));
+        codecs.contains(ICodec.ID.AV_CODEC_ID_MP3));
     assertTrue("Should contain H263",
-        codecs.contains(ICodec.ID.CODEC_ID_H263));
+        codecs.contains(ICodec.ID.AV_CODEC_ID_H263));
   }
   
   @Test
@@ -193,21 +193,21 @@ public class ContainerFormatTest extends TestCase
     JNIMemoryManager.getMgr().flush();
     IContainerFormat fmt = IContainerFormat.make();
     fmt.setOutputFormat("flv", null, null);
-    assertEquals(ICodec.ID.CODEC_ID_FLV1,
+    assertEquals(ICodec.ID.AV_CODEC_ID_FLV1,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
-    assertEquals(ICodec.ID.CODEC_ID_MP3,
+    assertEquals(ICodec.ID.AV_CODEC_ID_MP3,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
     
     fmt.setOutputFormat("mp4", null, null);
-    assertEquals(ICodec.ID.CODEC_ID_H264,
+    assertEquals(ICodec.ID.AV_CODEC_ID_H264,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
-    assertEquals(ICodec.ID.CODEC_ID_AAC,
+    assertEquals(ICodec.ID.AV_CODEC_ID_AAC,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
 
     fmt.setOutputFormat("3gp", null, null);
-    assertEquals(ICodec.ID.CODEC_ID_H263,
+    assertEquals(ICodec.ID.AV_CODEC_ID_H263,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
-    assertEquals(ICodec.ID.CODEC_ID_AMR_NB,
+    assertEquals(ICodec.ID.AV_CODEC_ID_AMR_NB,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
 
     fmt.delete();
@@ -222,7 +222,7 @@ public class ContainerFormatTest extends TestCase
     fmt.setOutputFormat("flv", null, null);
     try {
       fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO,
-          ICodec.ID.CODEC_ID_MP3);
+          ICodec.ID.AV_CODEC_ID_MP3);
       fail("should not get here");
     } catch (IllegalArgumentException e) {}
     fmt.delete();
@@ -270,7 +270,7 @@ public class ContainerFormatTest extends TestCase
       ICodec codec = ICodec.findEncodingCodec(id);
       assertNotNull(codec);
       if (codec.getType() == ICodec.Type.CODEC_TYPE_VIDEO) {
-        assertEquals(ICodec.ID.CODEC_ID_FLV1, id);
+        assertEquals(ICodec.ID.AV_CODEC_ID_FLV1, id);
         // and the test is now finished.
         break;
       }

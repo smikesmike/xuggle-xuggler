@@ -148,7 +148,7 @@ public class Converter
    */
   public Converter()
   {
-
+      
   }
 
   private final Logger log = LoggerFactory.getLogger(this.getClass());
@@ -853,7 +853,7 @@ public class Converter
            */
           mASamplers[i] = IAudioResampler.make(oc.getChannels(), ic
               .getChannels(), oc.getSampleRate(), ic.getSampleRate(),
-              oc.getSampleFormat(), ic.getSampleFormat());
+              IAudioSamples.Format.FMT_S16, IAudioSamples.Format.FMT_S16);
           if (mASamplers[i] == null)
           {
             throw new RuntimeException(
@@ -1292,7 +1292,7 @@ public class Converter
           retval = ic.decodeAudio(inSamples, iPacket, offset);
           if (retval <= 0)
             throw new RuntimeException("could not decode audio.  stream: " + i);
-
+          
           if (inSamples.getTimeStamp() != Global.NO_PTS)
             inSamples.setTimeStamp(inSamples.getTimeStamp() - tsOffset);
 

@@ -75,12 +75,12 @@ public class SimpleMediaFileTest
     obj.setAudioBitRate(123);
     obj.setAudioChannels(2);
     obj.setAudioSampleRate(22050);
-    obj.setAudioCodec(ICodec.ID.CODEC_ID_MP3);
+    obj.setAudioCodec(ICodec.ID.AV_CODEC_ID_MP3);
     obj.setAudioTimeBase(IRational.make(17, 100));
     obj.setVideoWidth(1);
     obj.setVideoHeight(2);
     obj.setVideoTimeBase(IRational.make(1, 100));
-    obj.setVideoCodec(ICodec.ID.CODEC_ID_FLV1);
+    obj.setVideoCodec(ICodec.ID.AV_CODEC_ID_FLV1);
     obj.setVideoPixelFormat(IPixelFormat.Type.ARGB);
     obj.setVideoNumPicturesInGroupOfPictures(12);
     obj.setVideoFrameRate(IRational.make(2, 15));
@@ -161,8 +161,8 @@ public class SimpleMediaFileTest
   @Test
   public void testAudioCodec()
   {
-    ICodec.ID defaultVal = ICodec.ID.CODEC_ID_NONE;
-    ICodec.ID val=ICodec.ID.CODEC_ID_AAC;
+    ICodec.ID defaultVal = ICodec.ID.AV_CODEC_ID_NONE;
+    ICodec.ID val=ICodec.ID.AV_CODEC_ID_AAC;
     assertNotNull("couldn't find codec", val);
     
     ISimpleMediaFile obj = new SimpleMediaFile();
@@ -185,8 +185,8 @@ public class SimpleMediaFileTest
   @Test
   public void testVideoCodec()
   {
-    ICodec.ID defaultVal = ICodec.ID.CODEC_ID_NONE;
-    ICodec.ID val=ICodec.ID.CODEC_ID_MPEG4;
+    ICodec.ID defaultVal = ICodec.ID.AV_CODEC_ID_NONE;
+    ICodec.ID val=ICodec.ID.AV_CODEC_ID_MPEG4;
     assertNotNull("couldn't find codec", val);
     
     ISimpleMediaFile obj = new SimpleMediaFile();

@@ -88,7 +88,7 @@ public class StreamCoderTest extends TestCase
     id = mCoder.getCodecID();
     assertTrue(id == codec.getID());
     log.debug("Video type: {}", id);
-    assertTrue(id == ICodec.ID.CODEC_ID_FLV1);
+    assertTrue(id == ICodec.ID.AV_CODEC_ID_FLV1);
     
     // Then the audio stream.
     mCoder = getStreamCoder(sampleFile, 1);
@@ -102,7 +102,7 @@ public class StreamCoderTest extends TestCase
     
     id = mCoder.getCodecID();
     assertTrue(id == codec.getID());
-    assertTrue(id == ICodec.ID.CODEC_ID_MP3);
+    assertTrue(id == ICodec.ID.AV_CODEC_ID_MP3);
   }
   
   @Test
@@ -295,12 +295,14 @@ public class StreamCoderTest extends TestCase
     // sample file has nellymoser audio, which has a non default frame size
     assertTrue(coder.getAudioFrameSize() != coder.getDefaultAudioFrameSize());
     
-    coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING, ICodec.ID.CODEC_ID_PCM_S16LE);
+    coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING, ICodec.ID.AV_CODEC_ID_PCM_S16LE);
     assertNotNull(coder.getCodec());
     log.debug("Coder: {}", coder.getCodec());
     coder.setSampleRate(22050);
     coder.setChannels(1);
-    assertTrue("could not open coder", coder.open(null, null) >= 0);
+      final int open = coder.open(null, null);
+      IError make = IError.make(open);
+    assertTrue("could not open coder "+make.getDescription(),  open >= 0);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
     coder.setDefaultAudioFrameSize(3);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
@@ -330,7 +332,7 @@ public class StreamCoderTest extends TestCase
   @Test
   public void testGetPropertyNames()
   {
-    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING, ICodec.ID.CODEC_ID_H263);
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING, ICodec.ID.AV_CODEC_ID_H263);
     Collection<String> properties = coder.getPropertyNames();
     assertTrue(properties.size() > 0);
     for(String name : properties)
@@ -344,7 +346,7 @@ public class StreamCoderTest extends TestCase
   public void testGetAutomaticallyStampOutputStream()
   {
     IStreamCoder coder = IStreamCoder.make(Direction.ENCODING,
-        ICodec.ID.CODEC_ID_FLV1);
+        ICodec.ID.AV_CODEC_ID_FLV1);
     assertTrue(coder.getAutomaticallyStampPacketsForStream());
   }
   

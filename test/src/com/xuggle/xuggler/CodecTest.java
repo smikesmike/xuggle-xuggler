@@ -47,11 +47,11 @@ public class CodecTest extends TestCase
   public void testFindDecodingCodec()
   {
     String name = null;
-    ICodec.ID id = ICodec.ID.CODEC_ID_NONE;
+    ICodec.ID id = ICodec.ID.AV_CODEC_ID_NONE;
     ICodec.Type type = ICodec.Type.CODEC_TYPE_UNKNOWN;
     
     mCodec = ICodec.findDecodingCodec(
-        ICodec.ID.CODEC_ID_NELLYMOSER);
+        ICodec.ID.AV_CODEC_ID_NELLYMOSER);
     assertTrue("no codec?", mCodec != null);
     id = mCodec.getID();
     type = mCodec.getType();
@@ -69,7 +69,7 @@ public class CodecTest extends TestCase
 
     mCodec = ICodec.findDecodingCodecByName("notbloodylikely");
     assertTrue("that codec exists?", mCodec == null);
-    mCodec = ICodec.findDecodingCodec(ICodec.ID.CODEC_ID_NONE);
+    mCodec = ICodec.findDecodingCodec(ICodec.ID.AV_CODEC_ID_NONE);
     assertTrue("that codec exists?", mCodec == null);
   }
 
@@ -77,11 +77,11 @@ public class CodecTest extends TestCase
   public void testFindEncodingCodec()
   {
     String name = null;
-    ICodec.ID id = ICodec.ID.CODEC_ID_NONE;
+    ICodec.ID id = ICodec.ID.AV_CODEC_ID_NONE;
     ICodec.Type type = ICodec.Type.CODEC_TYPE_UNKNOWN;
     
     mCodec = ICodec.findEncodingCodec(
-        ICodec.ID.CODEC_ID_MP3);
+        ICodec.ID.AV_CODEC_ID_MP3);
     assertTrue("no codec?", mCodec != null);
     id = mCodec.getID();
     type = mCodec.getType();
@@ -99,7 +99,7 @@ public class CodecTest extends TestCase
     
     mCodec = ICodec.findEncodingCodecByName("notbloodylikely");
     assertTrue("that codec exists?", mCodec == null);
-    mCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_NONE);
+    mCodec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_NONE);
     assertTrue("that codec exists?", mCodec == null);
     
   }
@@ -108,7 +108,7 @@ public class CodecTest extends TestCase
   public void testGetLongName()
   {
     mCodec = ICodec.findEncodingCodec(
-        ICodec.ID.CODEC_ID_MP3);
+        ICodec.ID.AV_CODEC_ID_MP3);
     assertNotNull(mCodec);
     String longname = mCodec.getLongName();
     assertNotNull("no long name", longname);
@@ -118,18 +118,18 @@ public class CodecTest extends TestCase
   public void testCodecIdsAreEnums()
   {
     ICodec.ID ids[] = {
-        ICodec.ID.CODEC_ID_4XM,
-        ICodec.ID.CODEC_ID_ADPCM_4XM,
-        ICodec.ID.CODEC_ID_DXA
+        ICodec.ID.AV_CODEC_ID_4XM,
+        ICodec.ID.AV_CODEC_ID_ADPCM_4XM,
+        ICodec.ID.AV_CODEC_ID_DXA
     };
     
     for(ICodec.ID id : ids)
     {
       switch(id)
       {
-      case CODEC_ID_4XM:
-      case CODEC_ID_ADPCM_4XM:
-      case CODEC_ID_DXA:
+      case AV_CODEC_ID_4XM:
+      case AV_CODEC_ID_ADPCM_4XM:
+      case AV_CODEC_ID_DXA:
         // yup; looks like we can do a switch statement;
         break;
       default:

@@ -43,11 +43,11 @@ public class SimpleMediaFile implements ISimpleMediaFile
   private int mAudioSampleRate = 44100;
   private boolean mAudioSampleRateKnown = false;
   private IRational mAudioTimeBase = null;
-  private ICodec.ID mAudioCodec = ICodec.ID.CODEC_ID_NONE;
+  private ICodec.ID mAudioCodec = ICodec.ID.AV_CODEC_ID_NONE;
   private IAudioSamples.Format mAudioSamplesFormat = IAudioSamples.Format.FMT_S16;
   
   private boolean mHasVideo = true;
-  private ICodec.ID mVideoCodec = ICodec.ID.CODEC_ID_NONE;
+  private ICodec.ID mVideoCodec = ICodec.ID.AV_CODEC_ID_NONE;
   private int mVideoHeight = 1;
   private boolean mVideoHeightKnown = false;
   

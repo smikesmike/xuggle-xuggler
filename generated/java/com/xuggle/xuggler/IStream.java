@@ -317,7 +317,9 @@ public class IStream extends RefCounted {
     PARSE_NONE,
     PARSE_FULL,
     PARSE_HEADERS,
-    PARSE_TIMESTAMPS;
+    PARSE_TIMESTAMPS,
+    PARSE_FULL_ONCE,
+    PARSE_FULL_RAW(XugglerJNI.IStream_PARSE_FULL_RAW_get());
 
     public final int swigValue() {
       return swigValue;
