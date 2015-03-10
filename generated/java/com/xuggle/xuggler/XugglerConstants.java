@@ -16,4 +16,5 @@ package com.xuggle.xuggler;
 
 public interface XugglerConstants {
   public final static int LIBAVCODEC_VERSION_MAJOR = XugglerJNI.LIBAVCODEC_VERSION_MAJOR_get();
+  public final static int FF_API_XVMC = XugglerJNI.FF_API_XVMC_get();
 }

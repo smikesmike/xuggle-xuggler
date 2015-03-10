@@ -77,7 +77,7 @@ Container_url_write(void*h, unsigned char* buf, int size)
   {
     retval = -1;
   }
-  VS_LOG_DEBUG("URLProtocolHandler[%p]->url_write(%p, %d) ==> %d", h, buf, size, retval);
+  VS_LOG_TRACE("URLProtocolHandler[%p]->url_write(%p, %d) ==> %d", h, buf, size, retval);
   return retval;
 }
 int64_t

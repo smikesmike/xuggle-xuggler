@@ -1770,12 +1770,11 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
             // We will adjust our starting time stamps then for this new
             // packet
             mFakeCurrPts = mFakeNextPts;
-            int64_t samplesTs = packet->getAVPacket()->dts;
-            if (samples && samplesTs != Global::NO_PTS)
+            if (samples && samples->getTimeStamp() != Global::NO_PTS)
             {
-              
-//                  + IAudioSamples::samplesToDefaultPts(startingSample
-//                      + samplesConsumed, getSampleRate());
+            int64_t samplesTs = samples->getTimeStamp()
+                  + IAudioSamples::samplesToDefaultPts(startingSample
+                      + samplesConsumed, getSampleRate());
               int64_t samplesCached = 0;/*mSamplesForEncoding - mSamplesCoded;*/
               int64_t tsDelta = IAudioSamples::samplesToDefaultPts(
                   samplesCached, getSampleRate());
@@ -1833,11 +1832,11 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
             duration
                 = thisTimeBase->rescale(duration, mFakePtsTimeBase.value());
           }
-//          setPacketParameters(packet, size, ts, thisTimeBase.value(), true,
-//              duration);
+          setPacketParameters(packet, size, ts, thisTimeBase.value(), true,
+              duration);
           //printf("%d\n",(int)ts);
-                    setPacketParameters(packet, size, packet->getAVPacket()->dts, thisTimeBase.value(), true,
-              packet->getAVPacket()->duration);
+          //          setPacketParameters(packet, size, packet->getAVPacket()->dts, thisTimeBase.value(), true,
+//              packet->getAVPacket()->duration);
 
           retval = samplesConsumed;
         }

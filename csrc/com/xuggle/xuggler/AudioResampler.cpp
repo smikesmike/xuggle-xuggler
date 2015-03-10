@@ -332,9 +332,9 @@ namespace com { namespace xuggle { namespace xuggler
         (void) sampleSize; // to avoid a -Werror error
         throw std::invalid_argument("not enough room in output buffer");
       }
-      short * inBuf = inSamples ? inSamples->getRawSamples(0) : 0;
+      uint8_t * inBuf = inSamples ? inSamples->getRawSamples(0) : 0;
 
-      short *outBuf = outSamples->getRawSamples(0);
+      uint8_t *outBuf = outSamples->getRawSamples(0);
       if (!outBuf)
         throw std::invalid_argument("could not get output bytes");
 
@@ -343,7 +343,7 @@ namespace com { namespace xuggle { namespace xuggler
         throw std::invalid_argument("programmer error");
 
       // Now we should be far enough along that we can safely try a resample.
-      retval = audio_resample(mContext, outBuf, inBuf, numSamples);
+      retval = audio_resample(mContext, (short*)outBuf, (short*)inBuf, numSamples);
 
 #if 0
       if (retval >0){
