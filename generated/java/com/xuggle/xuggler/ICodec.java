@@ -741,6 +741,7 @@ public class ICodec extends RefCounted {
     AV_CODEC_ID_MLP,
     AV_CODEC_ID_GSM_MS,
     AV_CODEC_ID_ATRAC3,
+    AV_CODEC_ID_VOXWARE,
     AV_CODEC_ID_APE,
     AV_CODEC_ID_NELLYMOSER,
     AV_CODEC_ID_MUSEPACK8,
