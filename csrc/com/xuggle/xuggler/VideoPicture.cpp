@@ -33,7 +33,7 @@ namespace com { namespace xuggle { namespace xuggler
   VideoPicture :: VideoPicture()
   {
     mIsComplete = false;
-    mFrame = avcodec_alloc_frame();
+    mFrame = av_frame_alloc();
     if (!mFrame)
       throw std::bad_alloc();
     // Set the private data pointer to point to me.

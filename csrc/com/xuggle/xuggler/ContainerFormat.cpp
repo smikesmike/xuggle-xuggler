@@ -50,7 +50,6 @@ namespace com { namespace xuggle { namespace xuggler
   int32_t
   ContainerFormat :: setInputFormat(const char *shortName)
   {
-      printf("%s", shortName);
     if (shortName && *shortName)
     {
       mInputFormat = av_find_input_format(shortName);

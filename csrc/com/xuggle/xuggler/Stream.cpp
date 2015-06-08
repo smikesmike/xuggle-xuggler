@@ -50,7 +50,7 @@ namespace com { namespace xuggle { namespace xuggler
 
   Stream :: ~Stream()
   {
-    reset();
+      reset();
   }
 
   void

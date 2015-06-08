@@ -261,7 +261,7 @@ namespace com { namespace xuggle { namespace xuggler
           mCustomIOHandler,
           Container_url_read,
           Container_url_write,
-          Container_url_seek);
+          NULL);//Container_url_seek don't work with some media stream
       if (!mFormatContext->pb)
         av_free(buffer);
     }
@@ -572,12 +572,12 @@ namespace com { namespace xuggle { namespace xuggler
       while(mStreams.size() > 0)
       {
         RefPointer<Stream> * stream=mStreams.back();
-
+        
         VS_ASSERT(stream && *stream, "no stream?");
         if (stream && *stream) {
           (*stream)->containerClosed(this);
           delete stream;
-        }
+        }      
         mStreams.pop_back();
       }
       mNumStreams = 0;
@@ -707,8 +707,8 @@ namespace com { namespace xuggle { namespace xuggler
       if (!pkt->isComplete())
         throw std::runtime_error("cannot write incomplete packet");
 
-      if (!pkt->getSize())
-        throw std::runtime_error("cannot write empty packet");
+//      if (!pkt->getSize())
+//        throw std::runtime_error("cannot write empty packet");
 
       if (!mNeedTrailerWrite)
         throw std::runtime_error("container has not written header yet");
@@ -726,16 +726,14 @@ namespace com { namespace xuggle { namespace xuggler
 
       // Create a new packet that wraps the input data; this
       // just copies meta-data
-      AVPacket packet;
-      av_copy_packet(&packet, pkt->getAVPacket());
-      //RefPointer<Packet> outPacket = Packet::make(pkt, true);
+      RefPointer<Packet> outPacket = Packet::make(pkt, false);
       // Stamp it with the stream data
-      if (stream->stampOutputPacket(pkt) <0)
+      if (stream->stampOutputPacket(outPacket.value()) <0)
         throw std::runtime_error("could not stamp output packet");
       
-      //AVPacket *packet = NULL;
-      //packet = outPacket->getAVPacket();
-      if (!packet.data)
+      AVPacket *packet = 0;
+      packet = outPacket->getAVPacket();
+      if (!packet || !packet->data)
         throw std::runtime_error("no data in packet");
       
       /*
@@ -751,9 +749,9 @@ namespace com { namespace xuggle { namespace xuggler
           */
           
       if (forceInterleave)
-        retval =  av_interleaved_write_frame(mFormatContext, &packet);
+        retval =  av_interleaved_write_frame(mFormatContext, packet);
       else
-        retval = av_write_frame(mFormatContext, &packet);
+        retval = av_write_frame(mFormatContext, packet);
     }
     catch (std::exception & e)
     {

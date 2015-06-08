@@ -51,7 +51,7 @@ namespace com { namespace xuggle { namespace xuggler
   Packet :: ~Packet()
   {
     if (mPacket) {
-//      reset();
+      reset();
       av_free(mPacket);
     }
     mPacket = 0;
@@ -184,8 +184,21 @@ namespace com { namespace xuggle { namespace xuggler
     // This overwrites data, which we'll patch below.
     (void) this->allocateNewPayload(pkt->size);
 
-    av_copy_packet(mPacket, pkt);
+    // Copy the contents of the new packet into data.
+    if (pkt->data && pkt->size)
+      memcpy(mPacket->data, pkt->data, pkt->size);
     
+    // Keep a copy of this, because we're going to nuke
+    // it temporarily.
+    uint8_t* data_buf = mPacket->data;
+    //void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+
+    // copy all data members, including data and size,
+    // but we'll overwrite those next.
+    *mPacket = *pkt;
+    mPacket->buf = NULL;
+    mPacket->data = data_buf;
+    mPacket->destruct = NULL;
     // And assume we're now complete.
     setComplete(true, mPacket->size);
   }
@@ -248,12 +261,11 @@ namespace com { namespace xuggle { namespace xuggler
       {
         int32_t numBytes = packet->getSize();
         retval = make(numBytes);
-        av_copy_packet(retval->mPacket, packet->mPacket);
         if (!retval || !retval->mPacket || !retval->mPacket->data)
           throw std::bad_alloc();
-//        if (numBytes > 0 && packet->mPacket->data)
-//          memcpy(retval->mPacket->data, packet->mPacket->data,
-//              numBytes);
+        if (numBytes > 0 && packet->mPacket->data)
+          memcpy(retval->mPacket->data, packet->mPacket->data,
+              numBytes);
       } else {
         buffer=packet->getData();
         retval = make(buffer);
@@ -263,14 +275,14 @@ namespace com { namespace xuggle { namespace xuggler
       // Keep a copy of this, because we're going to nuke
       // it temporarily.
       uint8_t* data_buf = retval->mPacket->data;
-      //void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+      // void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
 
       // copy all data members, including data and size,
       // but we'll overwrite those next.
       *(retval->mPacket) = *(packet->mPacket);
-
+      retval->mPacket->buf = NULL;
       retval->mPacket->data = data_buf;
-      //retval->mPacket->destruct = orig_destruct;
+      retval->mPacket->destruct =NULL;
 
       // separate here to catch addRef()
       timeBase = packet->getTimeBase();

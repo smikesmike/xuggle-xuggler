@@ -22,7 +22,9 @@
 
 #include <com/xuggle/xuggler/IAudioResampler.h>
 
+
 struct ReSampleContext;
+struct SwrContext;
 
 namespace com { namespace xuggle { namespace xuggler
   {
@@ -71,6 +73,7 @@ namespace com { namespace xuggle { namespace xuggler
     AudioResampler();
     virtual ~AudioResampler();
   private:
+    SwrContext *swrContext;//Not used for the moment will replace mContext and deprecated resampler
     ReSampleContext *mContext;
     int32_t mOChannels;
     int32_t mOSampleRate;

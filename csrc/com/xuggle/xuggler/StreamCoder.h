@@ -209,7 +209,8 @@ namespace com { namespace xuggle { namespace xuggler
         int64_t dts,
         IRational * timebase,
         bool keyframe,
-        int64_t duration);
+        int64_t duration,
+        bool complete);
     /**
      * Convenience method used by the make and setCodec methods to
      * ensure certain initialization steps are consistent.

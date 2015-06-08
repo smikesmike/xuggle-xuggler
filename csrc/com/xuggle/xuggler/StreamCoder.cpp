@@ -118,7 +118,6 @@ StreamCoder::reset()
   mCodecContext = 0;
   // We do not refcount the stream
   mStream = 0;
-  swr_free(&swrContext);
 }
 
 int32_t
@@ -846,6 +845,7 @@ StreamCoder::close()
   if (mCodecContext && mOpened)
   {
     retval = avcodec_close(mCodecContext);
+    swr_free(&swrContext);
     mOpened = false;
   }
   mBytesInFrameBuffer = 0;
@@ -913,7 +913,7 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
     if (buffer)
       inBuf = (uint8_t*) buffer->getBytes(startingByte, inBufSize);
 
-    outBuf = samples->getRawSamples(0);
+    outBuf = (uint8_t*) samples->getRawSamples(0);
 
     VS_ASSERT(inBuf, "no in buffer");
     VS_ASSERT(outBuf, "no out buffer");
@@ -928,7 +928,10 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
       AVPacket pkt;
       av_init_packet(&pkt);
       if (packet && packet->getAVPacket())
-        av_copy_packet(&pkt, packet->getAVPacket());
+        pkt = *packet->getAVPacket();
+      // copy in our buffer
+      pkt.data = inBuf;
+      pkt.size = inBufSize;
 
       mCodecContext->reordered_opaque = packet->getPts();
 
@@ -939,31 +942,38 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
         // the API for decoding audio changed ot support planar audio and we
         // need to back-port
         
-        swr_alloc_set_opts(swrContext,  // we're using an existing context
-                      av_frame_get_channels(frame) == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO,              // out_ch_layout
+        uint8_t* output;
+        
+        if (retval >= 0 && got_frame) {
+            if (!swr_is_initialized(swrContext)){
+                swr_alloc_set_opts(swrContext,  // we're using an existing context
+                      av_get_default_channel_layout(av_frame_get_channels(frame)), // out_ch_layout
                       AV_SAMPLE_FMT_S16,                // out_sample_fmt
                       frame->sample_rate,       // out_sample_rate
-                      frame->channel_layout,    // in_ch_layout
+                      av_frame_get_channel_layout(frame) == 0 ? av_get_default_channel_layout(av_frame_get_channels(frame)) : av_frame_get_channel_layout(frame),    // in_ch_layout
                       mCodecContext->sample_fmt,        // in_sample_fmt
                       frame->sample_rate,       // in_sample_rate
                       0,                                // log_offset
                       NULL);
-        swr_init(swrContext);
-        uint8_t* output;
-        
-        if (retval >= 0 && got_frame) {
+                swr_init(swrContext);
+            }
           int plane_size;
           int linesize;
-          int outChannels = av_frame_get_channels(frame) == 1 ? 1 : 2;
+          int outChannels = av_frame_get_channels(frame);
           
 
             av_samples_alloc(&output, &linesize, outChannels, frame->nb_samples, AV_SAMPLE_FMT_S16, 0);
             int out_samples = swr_convert(swrContext, &output, frame->nb_samples, (const uint8_t**)frame->extended_data, frame->nb_samples);
+            if (out_samples < 0) {
+               VS_LOG_ERROR("fail to convert samples: %s", Error::make(out_samples)->getDescription());
+               av_freep(&output);
+               return out_samples;
+            }
             int data_size = av_samples_get_buffer_size(&plane_size,
             outChannels,
             out_samples,
             AV_SAMPLE_FMT_S16,
-            1);
+            0);
 //            
 //         VS_LOG_DEBUG("Finished %d convertAudio(%p, %d, %d, %d, %d, %d);",
 //          data_size,
@@ -979,22 +989,14 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
             outBufSize = 0;
           } else {
             memcpy(outBuf, output, data_size);
-    
-//            memcpy(outBuf, frame->extended_data[0], plane_size);
-//            if (planar && mCodecContext->channels > 1) {
-//              uint8_t *out = ((uint8_t*)outBuf)+plane_size;
-//              for(ch = 1; ch < mCodecContext->channels; ch++) {
-//                memcpy(out, frame->extended_data[ch], plane_size);
-//                out += plane_size;
-//              }
-//            }
             outBufSize = data_size;
+            av_freep(&output);
           }
         }   
 
-        av_free_packet(&pkt);
+//        av_free_packet(&pkt);
         av_frame_free(&frame);
-        av_freep(&output);
+        
         
       }
       VS_LOG_TRACE("Finished %d decodeAudio(%p, %p, %d, %p, %d);",
@@ -1163,8 +1165,10 @@ StreamCoder::decodeVideo(IVideoPicture *pOutFrame, IPacket *pPacket,
       AVPacket pkt;
       av_init_packet(&pkt);
       if (packet && packet->getAVPacket())
-        av_copy_packet(&pkt, packet->getAVPacket());
-
+          pkt = *packet->getAVPacket();
+      pkt.data = inBuf;
+      pkt.size = inBufSize;
+      
       mCodecContext->reordered_opaque = packet->getPts();
       retval = avcodec_decode_video2(mCodecContext, avFrame, &frameFinished,
           &pkt);
@@ -1363,6 +1367,8 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
             mLastPtsEncoded = avFrame->pts;
         }
 
+        int got_pkt;
+          
         if (!dropFrame)
         {
           VS_LOG_TRACE("Attempting encodeVideo(%p, %p, %d, %p)",
@@ -1370,24 +1376,21 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
               buf,
               bufLen,
               avFrame);
-          retval = avcodec_encode_video(mCodecContext, buf, bufLen, avFrame);
-          VS_LOG_TRACE("Finished %d encodeVideo(%p, %p, %d, %p)",
-              retval,
-              mCodecContext,
-              buf,
-              bufLen,
-              avFrame);
+          packet->getAVPacket()->size = suggestedBufferSize;
+          retval = avcodec_encode_video2(mCodecContext, packet->getAVPacket(), avFrame, &got_pkt);
+//          retval = avcodec_encode_video(mCodecContext, buf, bufLen, avFrame);
+
         }
         else
         {
           ++mNumDroppedFrames;
           retval = 0;
         }
-        if (retval >= 0)
+        if (retval == 0)
         {
           int64_t dts = (avFrame ? mLastPtsEncoded : mLastPtsEncoded + 1);
           int64_t duration = 1;
-          if (retval > 0) {
+          if (got_pkt) {
             int32_t num = thisTimeBase->getNumerator();
             int32_t den = thisTimeBase->getDenominator();
             if (num*1000LL > den)
@@ -1431,13 +1434,13 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
           }
           setPacketParameters(
               packet,
-              retval,
+              got_pkt ? packet->getAVPacket()->size : retval,
               // if the last packet, increment the pts encoded
               // by one
               dts,
               thisTimeBase.value(),
               (mCodecContext->coded_frame ? mCodecContext->coded_frame->key_frame
-                  : 0), duration);
+                  : 0), duration, got_pkt);
         }
         if (avFrame)
           av_free(avFrame);
@@ -1470,7 +1473,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
   AudioSamples *samples = dynamic_cast<AudioSamples*> (pSamples);
   Packet *packet = dynamic_cast<Packet*> (pOutPacket);
   RefPointer<IBuffer> encodingBuffer;
-  //bool usingInternalFrameBuffer = false;
+  bool usingInternalFrameBuffer = false;
 
   try
   {
@@ -1504,7 +1507,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
     int32_t availableSamples = (samples ? samples->getNumSamples()
         - startingSample : 0);
     int32_t samplesConsumed = 0;
-    uint8_t *avSamples = (samples ? samples->getRawSamples(startingSample) : 0);
+    short *avSamples = (samples ? samples->getRawSamples(startingSample) : 0);
     
     if (samples)
     {
@@ -1535,7 +1538,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
     int32_t bytesPerSample = (samples ? samples->getSampleSize()
         : IAudioSamples::findSampleBitDepth(
-            (IAudioSamples::Format) mCodecContext->sample_fmt) / 8
+            (IAudioSamples::FMT_S16)) / 8
             * getChannels());
 
     /*
@@ -1585,32 +1588,26 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
             
     if (avSamples)
     {
-       
-        int ret = 0;
-        swr_alloc_set_opts(swrContext, // we're using existing context
-                                samples->getChannels() == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO, // out_ch_layout
-                                mCodecContext->sample_fmt, // out_sample_fmt
-                                samples->getSampleRate(), // out_sample_rate
-                                samples->getChannels() == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO, // in_ch_layout
-                                AV_SAMPLE_FMT_S16, // in_sample_fmt
-                                samples->getSampleRate(), // in_sample_rate
-                                0, // log_offset
-                                NULL);
-
-        swr_init(swrContext);
-        ret = av_samples_alloc(&convertAvSamples, NULL, samples->getChannels(), availableSamples > frameSize ? frameSize : availableSamples, mCodecContext->sample_fmt, 0);
-        ret = swr_convert(swrContext, &convertAvSamples, availableSamples > frameSize ? frameSize : availableSamples, (const uint8_t**) &avSamples, availableSamples > frameSize ? frameSize : availableSamples);
-
-        if (ret < 0){
-            VS_LOG_ERROR("fail to convert samples: %s", Error::make(ret)->getDescription());
-            throw std::runtime_error("fail to convert samples");
-        }
-        VS_LOG_TRACE("Finished %d convertAudio(%p, %d, %d, %d, %d, %d);",
-                ret,
-                swrContext,
-                availableSamples > frameSize ? frameSize : availableSamples,
-                samples->getNumSamples(),
-                frameSize);
+      if (availableSamples >= frameSize && mBytesInFrameBuffer == 0)
+      { //TODO: gerer CODEC_CAP_VARIABLE_FRAME_SIZE CODEC_CAP_SMALL_LAST_FRAME
+        VS_LOG_TRACE("audioEncode: Using passed in buffer: %d, %d, %d",
+            availableSamples, frameSize, mBytesInFrameBuffer);
+        frameBuffer = (uint8_t*)avSamples;
+        samplesConsumed = frameSize;
+        usingInternalFrameBuffer = false;
+      }
+      else
+      {
+        VS_LOG_TRACE("audioEncode: Using internal buffer: %d, %d, %d %d %d",
+            availableSamples, frameSize, mBytesInFrameBuffer);
+          if (bytesToCopyToFrameBuffer != 0){
+              memcpy(frameBuffer + mBytesInFrameBuffer, avSamples, bytesToCopyToFrameBuffer);
+              mBytesInFrameBuffer += bytesToCopyToFrameBuffer;
+          }
+        samplesConsumed = bytesToCopyToFrameBuffer / bytesPerSample;
+        retval = samplesConsumed;
+        usingInternalFrameBuffer = true;
+      }
     }
     else
     {
@@ -1622,11 +1619,11 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       frameBuffer = NULL;
     }
     mSamplesForEncoding += samplesConsumed;
-    VS_LOG_TRACE("Consumed %ld for total of %lld",
-        samplesConsumed, mSamplesForEncoding);
+    VS_LOG_TRACE("Consumed %ld for total of %lld Need %d got %d",
+        samplesConsumed, mSamplesForEncoding, frameBytes, mBytesInFrameBuffer);
 
-//    if (!frameBuffer || !usingInternalFrameBuffer || mBytesInFrameBuffer
-//        >= frameBytes)
+    if (!frameBuffer || !usingInternalFrameBuffer || mBytesInFrameBuffer
+        >= frameBytes)
     {
       // First, get the right buffer size.
       int32_t bufferSize = frameBytes;
@@ -1645,7 +1642,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       {
         encodingBuffer = packet->getData();
       }
-
+      
       uint8_t* buf = 0;
 
       if (encodingBuffer)
@@ -1704,38 +1701,62 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
        av_init_packet(&pkt);
        pkt.data = NULL;
        pkt.size = 0;
-       
-        if(!pSamples){
-            retval = avcodec_encode_audio2(mCodecContext, &pkt, NULL, &got_packet);
-        }else{
+
+       if(!pSamples){
+           retval = avcodec_encode_audio2(mCodecContext, &pkt, NULL, &got_packet);
+       }else{
+           int ret = 0;
+           if (!swr_is_initialized(swrContext)){
+               swr_alloc_set_opts(swrContext, // we're using existing context
+                                av_get_default_channel_layout(samples->getChannels()), // out_ch_layout
+                                mCodecContext->sample_fmt, // out_sample_fmt
+                                samples->getSampleRate(), // out_sample_rate
+                                av_get_default_channel_layout(samples->getChannels()), // in_ch_layout
+                                AV_SAMPLE_FMT_S16, // in_sample_fmt
+                                samples->getSampleRate(), // in_sample_rate
+                                0, // log_offset
+                                NULL);
+               swr_init(swrContext);
+           }
+           av_samples_alloc(&convertAvSamples, NULL, samples->getChannels(), frameSize, mCodecContext->sample_fmt, 0);
+           ret = swr_convert(swrContext, &convertAvSamples, frameSize, (const uint8_t**) &frameBuffer, frameSize);
+           if (ret < 0) {
+               VS_LOG_ERROR("fail to convert samples: %s", Error::make(ret)->getDescription());
+               av_freep(&convertAvSamples);
+               throw std::runtime_error("fail to convert samples");
+           }
+           VS_LOG_TRACE("Finished %d convertAudio(%p, %d, %d, %d, %d, %d);",
+                ret,
+                swrContext,
+                availableSamples > frameSize ? frameSize : availableSamples,
+                samples->getNumSamples(),
+                frameSize);
         
-        int data_size = av_samples_get_buffer_size(NULL,
-            samples->getChannels(),
-            availableSamples > frameSize ? frameSize : availableSamples,
-            mCodecContext->sample_fmt,
-            0);
-               
-      AVFrame* codingFrame = av_frame_alloc();
-      codingFrame->nb_samples     = availableSamples > frameSize ? frameSize : availableSamples;
-      codingFrame->format         = mCodecContext->sample_fmt;
-      codingFrame->channel_layout = samples->getChannels() == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO;
-      retval = av_frame_get_buffer(codingFrame, 0);
-      if (retval<0){
-          printf("Error %s",Error::make(retval)->getDescription());
-        throw std::bad_alloc();
-      }
+           int data_size = av_samples_get_buffer_size(NULL, samples->getChannels(), frameSize, mCodecContext->sample_fmt, 0);
+           
+           AVFrame* codingFrame = av_frame_alloc();
+           codingFrame->nb_samples     = frameSize;
+           codingFrame->format         = mCodecContext->sample_fmt;
+           codingFrame->channel_layout = av_get_default_channel_layout(samples->getChannels());
+           retval = av_frame_get_buffer(codingFrame, 0);
+           if (retval<0){
+               printf("Error %s",Error::make(retval)->getDescription());
+               av_frame_free(&codingFrame);
+               throw std::bad_alloc();
+           }
       
     retval = avcodec_fill_audio_frame(codingFrame, samples->getChannels(), mCodecContext->sample_fmt, (const uint8_t*)convertAvSamples, data_size, 0);
     if (retval<0){
-           printf("%s %p %d %d %p %d\n",Error::make(retval)->getDescription(), codingFrame, samples->getChannels(), codingFrame->format, frameBuffer, data_size);
-           throw std::bad_alloc();
-        }
+        printf("Error in filling frame %s %p %d %d %p %d\n",Error::make(retval)->getDescription(), codingFrame, samples->getChannels(), codingFrame->format, frameBuffer, data_size);
+        av_freep(&convertAvSamples);    
+        av_frame_free(&codingFrame);
+        throw std::bad_alloc();
+    }
 
-       retval = avcodec_encode_audio2(mCodecContext, &pkt, codingFrame, &got_packet);
-       samplesConsumed = codingFrame->nb_samples;
-       av_freep(&convertAvSamples);    
-       av_frame_free(&codingFrame);
-      }
+    retval = avcodec_encode_audio2(mCodecContext, &pkt, codingFrame, &got_packet);
+    av_freep(&convertAvSamples);    
+    av_frame_free(&codingFrame);
+    }
                
       if (retval>=0 && got_packet){
            packet->wrapAVPacket(&pkt);
@@ -1761,7 +1782,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
           if (retval >= 0 && got_packet)
           {
            
-            mSamplesCoded += samplesConsumed;
+            mSamplesCoded += frameSize;
 
             // let's check to see if the time stamp of passed in
             // samples (if any) are within tolerance of our expected
@@ -1775,7 +1796,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
             int64_t samplesTs = samples->getTimeStamp()
                   + IAudioSamples::samplesToDefaultPts(startingSample
                       + samplesConsumed, getSampleRate());
-              int64_t samplesCached = 0;/*mSamplesForEncoding - mSamplesCoded;*/
+              int64_t samplesCached = mSamplesForEncoding - mSamplesCoded;
               int64_t tsDelta = IAudioSamples::samplesToDefaultPts(
                   samplesCached, getSampleRate());
               int64_t gap = samplesTs - (mFakeNextPts + tsDelta);
@@ -1820,7 +1841,8 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
           }
           RefPointer<IRational> thisTimeBase = getTimeBase();
           int64_t ts;
-          int64_t duration = packet->getAVPacket()->duration;
+          int64_t duration = IAudioSamples::samplesToDefaultPts(frameSize,
+              getSampleRate());
           if (!thisTimeBase)
           {
             thisTimeBase.reset(mFakePtsTimeBase.value(), true);
@@ -1833,7 +1855,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
                 = thisTimeBase->rescale(duration, mFakePtsTimeBase.value());
           }
           setPacketParameters(packet, size, ts, thisTimeBase.value(), true,
-              duration);
+              duration, got_packet);
           //printf("%d\n",(int)ts);
           //          setPacketParameters(packet, size, packet->getAVPacket()->dts, thisTimeBase.value(), true,
 //              packet->getAVPacket()->duration);
@@ -1862,7 +1884,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
 
 void
 StreamCoder::setPacketParameters(Packet * packet, int32_t size, int64_t dts,
-    IRational *timebase, bool keyframe, int64_t duration)
+    IRational *timebase, bool keyframe, int64_t duration, bool complete)
 {
   packet->setDuration(duration);
 
@@ -1896,7 +1918,7 @@ StreamCoder::setPacketParameters(Packet * packet, int32_t size, int64_t dts,
   // We will sometimes encode some data, but have zero data to send.
   // in that case, mark the packet as incomplete so people don't
   // output it.
-  packet->setComplete(size > 0, size);
+  packet->setComplete(complete, size);
 
   if (mStream)
   {

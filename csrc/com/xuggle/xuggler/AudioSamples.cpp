@@ -103,16 +103,16 @@ namespace com { namespace xuggle { namespace xuggler
     
     return 0;
   }
-  uint8_t*
+  short*
   AudioSamples :: getRawSamples(uint32_t startingSample)
   {
-    uint8_t *retval = 0;
+    short *retval = 0;
     allocInternalSamples();
     if (mSamples)
     {
       uint32_t startingOffset = startingSample*getSampleSize();
       uint32_t bufLen = (mNumSamples*getSampleSize())-startingOffset;
-      retval = (uint8_t*)mSamples->getBytes(startingOffset, bufLen);
+      retval = (short*)mSamples->getBytes(startingOffset, bufLen);
     }
     return retval;
   }
@@ -329,7 +329,7 @@ namespace com { namespace xuggle { namespace xuggler
       if (sampleIndex >= this->getMaxSamples())
         throw std::invalid_argument("sampleIndex out of bounds");
 
-      uint8_t *rawSamples = this->getRawSamples(0);
+      short *rawSamples = this->getRawSamples(0);
       if (!rawSamples)
         throw std::runtime_error("no samples buffer set in AudioSamples");
 
@@ -357,7 +357,7 @@ namespace com { namespace xuggle { namespace xuggler
       if (sampleIndex >= this->getNumSamples())
         throw std::invalid_argument("sampleIndex out of bounds");
 
-      uint8_t *rawSamples = this->getRawSamples(0);
+      short *rawSamples = this->getRawSamples(0);
       if (!rawSamples)
         throw std::runtime_error("no samples buffer set in AudioSamples");
 
