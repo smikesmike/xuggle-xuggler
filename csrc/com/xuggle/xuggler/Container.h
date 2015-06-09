@@ -168,7 +168,7 @@ namespace com { namespace xuggle { namespace xuggler
       > mOpenCoders;
 
     bool mIsMetaDataQueried;
-    uint32_t mInputBufferLength;
+    size_t mInputBufferLength;
     
     int32_t mReadRetryCount;
     com::xuggle::ferry::RefPointer<MetaData> mMetaData;

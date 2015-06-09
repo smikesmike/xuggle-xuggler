@@ -219,7 +219,7 @@ namespace com { namespace xuggle { namespace xuggler
   ContainerFormat :: getOutputDefaultAudioCodec()
   {
     if (!mOutputFormat)
-      return ICodec::CODEC_ID_NONE;
+      return ICodec::AV_CODEC_ID_NONE;
     return (ICodec::ID)mOutputFormat->audio_codec;
   }
   
@@ -227,7 +227,7 @@ namespace com { namespace xuggle { namespace xuggler
   ContainerFormat :: getOutputDefaultVideoCodec()
   {
     if (!mOutputFormat)
-      return ICodec::CODEC_ID_NONE;
+      return ICodec::AV_CODEC_ID_NONE;
     return (ICodec::ID)mOutputFormat->video_codec;
   }
 
@@ -235,7 +235,7 @@ namespace com { namespace xuggle { namespace xuggler
   ContainerFormat :: getOutputDefaultSubtitleCodec()
   {
     if (!mOutputFormat)
-      return ICodec::CODEC_ID_NONE;
+      return ICodec::AV_CODEC_ID_NONE;
     return (ICodec::ID)mOutputFormat->subtitle_codec;
   }
   
@@ -256,7 +256,7 @@ namespace com { namespace xuggle { namespace xuggler
         i++)
     {
       for(const struct AVCodecTag * tag = tags[i];
-          tag && tag->id != ICodec::CODEC_ID_NONE;
+          tag && tag->id != ICodec::AV_CODEC_ID_NONE;
           ++tag)
       {
         ++numCodecs;
@@ -268,11 +268,11 @@ namespace com { namespace xuggle { namespace xuggler
   ContainerFormat :: getOutputCodecID(int32_t index)
   {
     if (index < 0)
-      return ICodec::CODEC_ID_NONE;
+      return ICodec::AV_CODEC_ID_NONE;
 
     const struct AVCodecTag * const*tags = mOutputFormat->codec_tag;
     if (!tags)
-      return ICodec::CODEC_ID_NONE;
+      return ICodec::AV_CODEC_ID_NONE;
 
     int numCodecs = 0;
 
@@ -282,25 +282,25 @@ namespace com { namespace xuggle { namespace xuggler
     {
       for(
           const struct AVCodecTag * tag = tags[i];
-          tag && tag->id != ICodec::CODEC_ID_NONE;
+          tag && tag->id != ICodec::AV_CODEC_ID_NONE;
           ++tag, ++numCodecs)
       {
         if (numCodecs == index)
           return (ICodec::ID)tag->id;
       }
     }
-    return ICodec::CODEC_ID_NONE;
+    return ICodec::AV_CODEC_ID_NONE;
   }
 
   int32_t
   ContainerFormat :: getOutputCodecTag(int32_t index)
   {
     if (index < 0)
-      return ICodec::CODEC_ID_NONE;
+      return ICodec::AV_CODEC_ID_NONE;
 
     const struct AVCodecTag * const*tags = mOutputFormat->codec_tag;
     if (!tags)
-      return ICodec::CODEC_ID_NONE;
+      return ICodec::AV_CODEC_ID_NONE;
 
     int numCodecs = 0;
 
@@ -310,14 +310,14 @@ namespace com { namespace xuggle { namespace xuggler
     {
       for(
           const struct AVCodecTag * tag = tags[i];
-          tag && tag->id != ICodec::CODEC_ID_NONE;
+          tag && tag->id != ICodec::AV_CODEC_ID_NONE;
           ++tag, ++numCodecs)
       {
         if (numCodecs == index)
           return tag->tag;
       }
     }
-    return ICodec::CODEC_ID_NONE;
+    return ICodec::AV_CODEC_ID_NONE;
   }
 
   bool
@@ -332,7 +332,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mOutputFormat)
       return 0;
     return (int32_t)av_codec_get_tag(mOutputFormat->codec_tag,
-        (enum CodecID)id);
+        (enum AVCodecID)id);
     
   }
 

@@ -86,7 +86,7 @@ ContainerCustomIOTest :: testWriteToFileFromFile()
   RefPointer<IMetaData> rejectedOptions = IMetaData::make();
 
   retval = outContainer->open(OUTPUT_FILE,
-      IContainer::WRITE, 0, false, true, options.value(), rejectedOptions.value());
+      IContainer::WRITE, NULL, false, true, options.value(), rejectedOptions.value());
   VS_TUT_ENSURE("couldn't write", retval >=0);
 
   for(int32_t i = rejectedOptions->getNumKeys()-1; i >= 0; i--)

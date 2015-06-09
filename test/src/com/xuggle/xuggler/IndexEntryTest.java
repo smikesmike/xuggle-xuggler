@@ -19,7 +19,7 @@ public class IndexEntryTest
     assertEquals(3, container.getNumStreams());
     IStream stream = container.getStream(0);
     IStreamCoder coder = stream.getStreamCoder();
-    assertEquals(ICodec.ID.CODEC_ID_H264, coder.getCodecID());
+    assertEquals(ICodec.ID.AV_CODEC_ID_H264, coder.getCodecID());
     assertEquals(2665, stream.getNumIndexEntries());
     List<IIndexEntry> entries = stream.getIndexEntries();
     assertEquals(stream.getNumIndexEntries(), entries.size());

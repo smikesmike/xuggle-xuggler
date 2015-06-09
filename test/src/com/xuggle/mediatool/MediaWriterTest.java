@@ -218,7 +218,7 @@ public class MediaWriterTest
 
     // add the video stream
 
-    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_FLV1);
     writer.addVideoStream(videoStreamIndex, videoStreamId, codec, w, h);
 
     // create a place for video pictures
@@ -280,7 +280,7 @@ public class MediaWriterTest
 
     // add the audio stream
 
-    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_MP3);
     IContainer container = writer.getContainer();
     IStream stream = container.getStream(
         writer.addAudioStream(audioStreamIndex, audioStreamId,
@@ -336,7 +336,7 @@ public class MediaWriterTest
 
     // add the audio stream
 
-    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_MP3);
     IContainer container = writer.getContainer();
     int streamIndex = writer.addAudioStream(
         audioStreamIndex, audioStreamId, codec, channelCount, sampleRate); 
@@ -407,12 +407,12 @@ public class MediaWriterTest
 
     // add the video stream
 
-    ICodec videoCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1);
+    ICodec videoCodec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_FLV1);
     writer.addVideoStream(videoStreamIndex, videoStreamId, videoCodec, w, h);
 
     // add the audio stream
 
-    ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    ICodec audioCodec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_MP3);
     IContainer container = writer.getContainer();
     IStream stream = container.getStream(writer.addAudioStream(audioStreamIndex, audioStreamId,
       audioCodec, channelCount, sampleRate));
@@ -506,7 +506,7 @@ public class MediaWriterTest
 
     // add the audio stream
 
-    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_MP3);
     IContainer container = writer.getContainer();
     IStream stream = container.getStream(
         writer.addAudioStream(audioStreamIndex, audioStreamId,
@@ -566,7 +566,7 @@ public class MediaWriterTest
 
     // add the audio stream
 
-    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3);
+    ICodec codec = ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_MP3);
     IContainer container = writer.getContainer();
     IStream stream = container.getStream(
         writer.addAudioStream(audioStreamIndex, audioStreamId,

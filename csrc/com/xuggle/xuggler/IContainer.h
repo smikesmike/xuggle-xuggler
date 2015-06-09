@@ -73,7 +73,7 @@ namespace com { namespace xuggle { namespace xuggler
    * 
    * IStreamCoder coder = stream.getStreamCoder();
    * 
-   * coder.setCodec(ICodec.ID.CODEC_ID_MP3);
+   * coder.setCodec(ICodec.ID.AV_CODEC_ID_MP3);
    * coder.setSampleRate(22050);
    * coder.setChannels(2);
    * coder.setBitRate(64000);
@@ -909,7 +909,7 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Add a new stream that will use the given codec.
      *
-     * @param id The id for the codec used to insert packets.  If you are adding an arbitrary data stream, use {@link ICodec.ID#CODEC_ID_NONE}, otherwise
+     * @param id The id for the codec used to insert packets.  If you are adding an arbitrary data stream, use {@link ICodec.ID#AV_CODEC_ID_NONE}, otherwise
      *   use the ID of the code type you plan to use.
      *
      * @return An {@link IStream} for the new stream on success, or null on failure.

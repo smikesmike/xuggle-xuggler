@@ -120,7 +120,7 @@ IndexEntryTest :: testAddIndexEntry()
   RefPointer<IContainer> container = IContainer::make();
   int retval = container->open("IIndexEntry_1.mov", IContainer::WRITE, 0);
   VS_TUT_ENSURE("", retval >= 0);
-  RefPointer<IStream> stream = container->addNewStream(ICodec::CODEC_ID_FLV1);
+  RefPointer<IStream> stream = container->addNewStream(ICodec::AV_CODEC_ID_H264);
   int64_t pos = 1;
   int64_t ts = 2;
   int32_t flags = IIndexEntry::IINDEX_FLAG_KEYFRAME;

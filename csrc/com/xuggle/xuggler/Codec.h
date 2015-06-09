@@ -31,14 +31,14 @@ namespace com { namespace xuggle { namespace xuggler
   {
     VS_JNIUTILS_REFCOUNTED_OBJECT_PRIVATE_MAKE(Codec)
   public:
-    static Codec * make(AVCodec *);
+    static Codec * make(const AVCodec *);
     virtual const char * getName();
     virtual int getIDAsInt();
     virtual Type getType();
     virtual ID getID()
     {
       // Warning; this might not be protable
-      ID retval = CODEC_ID_NONE;
+      ID retval = AV_CODEC_ID_NONE;
       int id = getIDAsInt();
 
       // This cast is not defined in C++ when id is
@@ -50,13 +50,13 @@ namespace com { namespace xuggle { namespace xuggler
       if (id != (int) retval)
       {
         // we assume some back and forth conversion failed...
-        retval = CODEC_ID_NONE;
+        retval = AV_CODEC_ID_NONE;
       }
       return retval;
     }
 
     // For calling from with C++, not Java.
-    AVCodec * getAVCodec() { return mCodec; }
+    const AVCodec * getAVCodec() { return mCodec; }
 
     static Codec *findEncodingCodec(const ICodec::ID);
     static Codec *findEncodingCodecByIntID(const int);
@@ -100,7 +100,7 @@ namespace com { namespace xuggle { namespace xuggler
     Codec();
     virtual ~Codec();
 
-    AVCodec *mCodec;
+    const AVCodec *mCodec;
   };
 
 }}}

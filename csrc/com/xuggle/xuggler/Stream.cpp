@@ -50,7 +50,7 @@ namespace com { namespace xuggle { namespace xuggler
 
   Stream :: ~Stream()
   {
-    reset();
+      reset();
   }
 
   void
@@ -69,7 +69,7 @@ namespace com { namespace xuggle { namespace xuggler
     mContainer = 0;
   }
   Stream*
-  Stream :: make(Container *container, AVStream * aStream, Direction direction, AVCodec* avCodec)
+  Stream :: make(Container *container, AVStream * aStream, Direction direction,const AVCodec* avCodec)
   {
     // note: make will acquire this for us.
     Stream *newStream = 0;

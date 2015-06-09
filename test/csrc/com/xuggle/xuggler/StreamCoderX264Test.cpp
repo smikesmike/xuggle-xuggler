@@ -208,7 +208,7 @@ StreamCoderX264Test :: testDecodingAndEncodingH264VideoWithBFrames()
 
             retval = hw->container->writePacket(opacket.value());
             VS_TUT_ENSURE("could not write packet", retval >= 0);
-          }
+      }
         } while (numSamplesConsumed < samples->getNumSamples());
       }
     } else if (packet->getStreamIndex() == h->first_input_video_stream)
@@ -260,10 +260,10 @@ StreamCoderX264Test :: testDecodingAndEncodingH264VideoWithBFrames()
             // now, write the packet to disk.
             retval = hw->container->writePacket(opacket.value());
             VS_TUT_ENSURE("could not write packet", retval >= 0);
-          }
-
-        }
       }
+
+    }
+  }
     }
   }
   // sigh; it turns out that to flush the encoding buffers you need to

@@ -98,6 +98,8 @@ ContainerTest :: testOpenForReading()
         IContainer::READ,
         0);
   }
+  
+  printf(h->getSamplePath(),"%s");
   VS_TUT_ENSURE("could not open file for read", retval >= 0);
   int numStreams = container->getNumStreams();
   VS_TUT_ENSURE("unexpected number of streams", numStreams == 2);
@@ -322,7 +324,7 @@ ContainerTest :: testWriteHeader()
   LoggerStack stack;
   stack.setGlobalLevel(Logger::LEVEL_WARN, false);
 
-  RefPointer<IStream> stream = container->addNewStream(ICodec::CODEC_ID_MP3);
+  RefPointer<IStream> stream = container->addNewStream(ICodec::AV_CODEC_ID_MP3);
   VS_TUT_ENSURE("got stream", stream);
   
   RefPointer<IStreamCoder> coder = stream->getStreamCoder();
@@ -330,6 +332,7 @@ ContainerTest :: testWriteHeader()
   
   coder->setSampleRate(22050);
   coder->setChannels(1);
+  coder->setSampleFormat(IAudioSamples::FMT_S16P);
   VS_TUT_ENSURE("couldn't open", coder->open() >= 0);
   
   retval = container->writeHeader();
@@ -460,7 +463,7 @@ ContainerTest :: testGetSDP()
   cont = IContainer::make();
   cont->open("rtp://127.0.0.1:23832",
       IContainer::WRITE, format.value());
-  stream = cont->addNewStream(ICodec::CODEC_ID_H263);
+  stream = cont->addNewStream(ICodec::AV_CODEC_ID_H263);
   RefPointer<IStreamCoder> coder = stream->getStreamCoder();
   coder->setWidth(352);
   coder->setHeight(288);

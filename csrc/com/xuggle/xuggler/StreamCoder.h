@@ -151,7 +151,7 @@ namespace com { namespace xuggle { namespace xuggler
      * stream in a container.
      */
     static StreamCoder* make(Direction direction,
-        AVCodecContext *context, AVCodec*, Stream* stream);
+        AVCodecContext *context, const AVCodec*, Stream* stream);
     static StreamCoder* make(Direction direction, IStreamCoder* copyCoder);
     static StreamCoder* make(Direction direction, Codec* codec);
     static StreamCoder* make(Direction direction, ICodec::ID id);
@@ -182,6 +182,7 @@ namespace com { namespace xuggle { namespace xuggler
   private:
     Direction mDirection;
     AVCodecContext* mCodecContext;
+    SwrContext* swrContext;
     Stream* mStream; // Must not refcount this.
     com::xuggle::ferry::RefPointer<Codec> mCodec;
     bool mOpened;
@@ -208,7 +209,8 @@ namespace com { namespace xuggle { namespace xuggler
         int64_t dts,
         IRational * timebase,
         bool keyframe,
-        int64_t duration);
+        int64_t duration,
+        bool complete);
     /**
      * Convenience method used by the make and setCodec methods to
      * ensure certain initialization steps are consistent.
@@ -219,7 +221,7 @@ namespace com { namespace xuggle { namespace xuggler
         Stream* aStream,
         Codec *aCodec,
         AVCodecContext *avContext,
-        AVCodec *avCodec);
+        const AVCodec *avCodec);
     static void resetOptions(AVCodecContext*);
   };
 

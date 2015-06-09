@@ -139,9 +139,9 @@ ContainerFormatTest :: testGetOutputNumCodecsSupported()
   VS_TUT_ENSURE("could not set format to mov", retval >= 0);
   
   VS_TUT_ENSURE("no default audio codec",
-      format->getOutputDefaultAudioCodec() != ICodec::CODEC_ID_NONE);
+      format->getOutputDefaultAudioCodec() != ICodec::AV_CODEC_ID_NONE);
   VS_TUT_ENSURE("no default audio codec",
-      format->getOutputDefaultVideoCodec() != ICodec::CODEC_ID_NONE);
+      format->getOutputDefaultVideoCodec() != ICodec::AV_CODEC_ID_NONE);
   VS_TUT_ENSURE("should have non null extensions",
       format->getOutputExtensions());
   int numCodecsSupported = format->getOutputNumCodecsSupported();
@@ -151,7 +151,7 @@ ContainerFormatTest :: testGetOutputNumCodecsSupported()
   for(int i = 0; i < numCodecsSupported; i++)
   {
     ICodec::ID id = format->getOutputCodecID(i);
-    VS_TUT_ENSURE("should not be none", id != ICodec::CODEC_ID_NONE);
+    VS_TUT_ENSURE("should not be none", id != ICodec::AV_CODEC_ID_NONE);
     RefPointer<ICodec> codec = ICodec::findEncodingCodec(id);
     if (!codec) {
       VS_LOG_DEBUG("Codec not supported: %ld", id);

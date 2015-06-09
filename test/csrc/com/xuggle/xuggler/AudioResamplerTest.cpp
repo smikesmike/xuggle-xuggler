@@ -189,7 +189,7 @@ AudioResamplerTest :: testResamplingAudio()
       outRate, ic->getSampleRate());
   oc->setSampleRate(outRate);
   oc->setChannels(outChannels);
-  oc->setBitRate(ic->getBitRate());
+  oc->setBitRate(ic->getBitRate());    
 
   int maxSamples = 10 * ic->getSampleRate(); // 10 seconds
 

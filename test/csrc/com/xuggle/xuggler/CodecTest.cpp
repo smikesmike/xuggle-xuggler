@@ -42,14 +42,14 @@ CodecTest :: tearDown()
 void
 CodecTest :: testCreationAndDescruction()
 {
-  codec = ICodec::findDecodingCodec(ICodec::CODEC_ID_NELLYMOSER);
+  codec = ICodec::findDecodingCodec(ICodec::AV_CODEC_ID_NELLYMOSER);
   VS_TUT_ENSURE("could not find NELLYMOSER decoder", codec);
 
-  codec = ICodec::findEncodingCodec(ICodec::CODEC_ID_MP3);
+  codec = ICodec::findEncodingCodec(ICodec::AV_CODEC_ID_MP3);
   VS_TUT_ENSURE("could not find MP3 encoder", codec);
 
   // should not find these.
-  codec = ICodec::findEncodingCodec(ICodec::CODEC_ID_RV40);
+  codec = ICodec::findEncodingCodec(ICodec::AV_CODEC_ID_RV40);
   VS_TUT_ENSURE("could find Real Audio encoder, but we thought FFMPEG couldn't support that", !codec);
 
 }

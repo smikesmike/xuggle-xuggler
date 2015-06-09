@@ -1,3 +1,7 @@
+The aim of this fork is to maintain Xuggler with new version of FFMPEG and to make it work on Android. 
+Currently it use version 2.5.4 of FFMPEG.
+Branch repo contains latest stable build for linux 64 bit.
+
 Welcome to Xuggle-Xuggler-Main (a.k.a. Xuggler)
 http://www.xuggle.com/xuggler
 

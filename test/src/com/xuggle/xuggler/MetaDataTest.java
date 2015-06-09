@@ -89,7 +89,7 @@ public class MetaDataTest
     String filename = getClass().getName()+".mp3";
     IContainer container = IContainer.make();
     container.open(filename, IContainer.Type.WRITE, null);
-    IStream stream = container.addNewStream(ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3));
+    IStream stream = container.addNewStream(ICodec.findEncodingCodec(ICodec.ID.AV_CODEC_ID_MP3));
     IStreamCoder coder = stream.getStreamCoder();
     coder.setSampleRate(22050);
     coder.setChannels(1);

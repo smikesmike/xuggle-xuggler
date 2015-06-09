@@ -53,7 +53,7 @@ static const uint8_t run_value_bits_short[16] = {
     3, 3, 3, 3, 3, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6, 9
 };
 
-static const uint8_t *run_value_bits[2] = {
+static const uint8_t * const run_value_bits[2] = {
     run_value_bits_long, run_value_bits_short
 };
 
@@ -506,7 +506,7 @@ static void codebook_trellis_rate(AACEncContext *s, SingleChannelElement *sce,
             idx = cb;
     ppos = max_sfb;
     while (ppos > 0) {
-        assert(idx >= 0);
+        av_assert1(idx >= 0);
         cb = idx;
         stackrun[stack_len] = path[ppos][cb].run;
         stackcb [stack_len] = cb;
@@ -585,7 +585,6 @@ static void search_for_quantizers_anmr(AVCodecContext *avctx, AACEncContext *s,
     q0 = coef2minsf(q0f);
     //maximum scalefactor index is when maximum coefficient after quantizing is still not zero
     q1 = coef2maxsf(q1f);
-    //av_log(NULL, AV_LOG_ERROR, "q0 %d, q1 %d\n", q0, q1);
     if (q1 - q0 > 60) {
         int q0low  = q0;
         int q1high = q1;
@@ -593,7 +592,6 @@ static void search_for_quantizers_anmr(AVCodecContext *avctx, AACEncContext *s,
         int qnrg = av_clip_uint8(log2f(sqrtf(qnrgf/qcnt))*4 - 31 + SCALE_ONE_POS - SCALE_DIV_512);
         q1 = qnrg + 30;
         q0 = qnrg - 30;
-        //av_log(NULL, AV_LOG_ERROR, "q0 %d, q1 %d\n", q0, q1);
         if (q0 < q0low) {
             q1 += q0low - q0;
             q0  = q0low;
@@ -602,7 +600,6 @@ static void search_for_quantizers_anmr(AVCodecContext *avctx, AACEncContext *s,
             q1  = q1high;
         }
     }
-    //av_log(NULL, AV_LOG_ERROR, "q0 %d, q1 %d\n", q0, q1);
 
     for (i = 0; i < TRELLIS_STATES; i++) {
         paths[0][i].cost    = 0.0f;
@@ -713,7 +710,7 @@ static void search_for_quantizers_twoloop(AVCodecContext *avctx,
                                           const float lambda)
 {
     int start = 0, i, w, w2, g;
-    int destbits = avctx->bit_rate * 1024.0 / avctx->sample_rate / avctx->channels;
+    int destbits = avctx->bit_rate * 1024.0 / avctx->sample_rate / avctx->channels * (lambda / 120.f);
     float dists[128] = { 0 }, uplims[128];
     float maxvals[128];
     int fflag, minscaler;
@@ -779,7 +776,6 @@ static void search_for_quantizers_twoloop(AVCodecContext *avctx,
         do {
             int prev = -1;
             tbits = 0;
-            fflag = 0;
             for (w = 0; w < sce->ics.num_windows; w += sce->ics.group_len[w]) {
                 start = w*128;
                 for (g = 0;  g < sce->ics.num_swb; g++) {
@@ -878,7 +874,7 @@ static void search_for_quantizers_faac(AVCodecContext *avctx, AACEncContext *s,
     } else {
         for (w = 0; w < 8; w++) {
             const float *coeffs = sce->coeffs + w*128;
-            start = 0;
+            curband = start = 0;
             for (i = 0; i < 128; i++) {
                 if (i - start >= sce->ics.swb_sizes[curband]) {
                     start += sce->ics.swb_sizes[curband];
@@ -956,7 +952,6 @@ static void search_for_quantizers_faac(AVCodecContext *avctx, AACEncContext *s,
             }
             sce->zeroes[w*16+g] = 0;
             scf  = prev_scf = av_clip(SCALE_ONE_POS - SCALE_DIV_512 - log2f(1/maxq[w*16+g])*16/3, 60, 218);
-            step = 16;
             for (;;) {
                 float dist = 0.0f;
                 int quant_max;
@@ -1116,25 +1111,25 @@ static void search_for_ms(AACEncContext *s, ChannelElement *cpe,
 }
 
 AACCoefficientsEncoder ff_aac_coders[AAC_CODER_NB] = {
-    {
+    [AAC_CODER_FAAC] = {
         search_for_quantizers_faac,
         encode_window_bands_info,
         quantize_and_encode_band,
         search_for_ms,
     },
-    {
+    [AAC_CODER_ANMR] = {
         search_for_quantizers_anmr,
         encode_window_bands_info,
         quantize_and_encode_band,
         search_for_ms,
     },
-    {
+    [AAC_CODER_TWOLOOP] = {
         search_for_quantizers_twoloop,
         codebook_trellis_rate,
         quantize_and_encode_band,
         search_for_ms,
     },
-    {
+    [AAC_CODER_FAST] = {
         search_for_quantizers_fast,
         encode_window_bands_info,
         quantize_and_encode_band,

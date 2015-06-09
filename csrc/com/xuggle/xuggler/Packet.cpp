@@ -42,7 +42,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       // initialize because ffmpeg doesn't
       av_init_packet(mPacket);
-      mPacket->data = 0;
+      mPacket->data = NULL;
       mPacket->size = 0;
     }
     mIsComplete = false;
@@ -179,28 +179,26 @@ namespace com { namespace xuggle { namespace xuggler
     // WE ALWAYS COPY the data; Let Ffmpeg do what it wants
     // to with it's own memory.
     VS_ASSERT(mPacket, "No packet?");
-    
+
     // Make sure we have a buffer at least as large as this packet
     // This overwrites data, which we'll patch below.
     (void) this->allocateNewPayload(pkt->size);
-
-    // Keep a copy of this, because we're going to nuke
-    // it temporarily.
-    uint8_t* data_buf = mPacket->data;
-    void (*orig_destruct)(struct AVPacket *) = mPacket->destruct;
-    
-    // copy all data members, including data and size,
-    // but we'll overwrite those next.
-    *mPacket = *pkt;
-    // Reset the data buf.
-    mPacket->data = data_buf;
-    mPacket->destruct = orig_destruct;
-    mPacket->size = pkt->size;
 
     // Copy the contents of the new packet into data.
     if (pkt->data && pkt->size)
       memcpy(mPacket->data, pkt->data, pkt->size);
     
+    // Keep a copy of this, because we're going to nuke
+    // it temporarily.
+    uint8_t* data_buf = mPacket->data;
+    //void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+
+    // copy all data members, including data and size,
+    // but we'll overwrite those next.
+    *mPacket = *pkt;
+    mPacket->buf = NULL;
+    mPacket->data = data_buf;
+    mPacket->destruct = NULL;
     // And assume we're now complete.
     setComplete(true, mPacket->size);
   }
@@ -239,7 +237,7 @@ namespace com { namespace xuggle { namespace xuggler
   Packet*
   Packet :: make (com::xuggle::ferry::IBuffer* buffer)
   {
-    Packet *retval= 0;
+    Packet *retval= NULL;
     retval = Packet::make();
     if (retval)
     {
@@ -251,9 +249,9 @@ namespace com { namespace xuggle { namespace xuggler
   Packet*
   Packet :: make (Packet *packet, bool copyData)
   {
-    Packet* retval=0;
-    com::xuggle::ferry::IBuffer *buffer=0;
-    IRational* timeBase = 0;
+    Packet* retval= NULL;
+    com::xuggle::ferry::IBuffer *buffer= NULL;
+    IRational* timeBase = NULL;
     try
     {
       if (!packet)
@@ -277,14 +275,14 @@ namespace com { namespace xuggle { namespace xuggler
       // Keep a copy of this, because we're going to nuke
       // it temporarily.
       uint8_t* data_buf = retval->mPacket->data;
-      void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+      // void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
 
       // copy all data members, including data and size,
       // but we'll overwrite those next.
       *(retval->mPacket) = *(packet->mPacket);
-
+      retval->mPacket->buf = NULL;
       retval->mPacket->data = data_buf;
-      retval->mPacket->destruct = orig_destruct;
+      retval->mPacket->destruct =NULL;
 
       // separate here to catch addRef()
       timeBase = packet->getTimeBase();
@@ -318,15 +316,15 @@ namespace com { namespace xuggle { namespace xuggler
       payload = (uint8_t*) av_malloc(payloadSize+FF_INPUT_BUFFER_PADDING_SIZE);
       if (!payload)
         throw std::bad_alloc();
-      
-      // we don't use the JVM for packets because Ffmpeg is REAL squirly about that
-      mBuffer = Buffer::make(0, payload,
-          payloadSize,
+
+            // we don't use the JVM for packets because Ffmpeg is REAL squirly about that
+            mBuffer = Buffer::make(0, payload,
+                    payloadSize,
           Packet::freeAVBuffer, 0);
-      if (!mBuffer) {
-        av_free(payload);
-        throw std::bad_alloc();
-      }
+            if (!mBuffer) {
+                av_free(payload);
+                throw std::bad_alloc();
+            }
       // and memset the padding area.
       memset(payload + payloadSize,
           0,
@@ -340,7 +338,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (mBuffer && mPacket)
     {
       mPacket->data = payload;
-
+        
       // And start out at zero.
       mPacket->size = 0;
       this->setComplete(false, 0);

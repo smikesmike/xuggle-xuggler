@@ -25,8 +25,9 @@
  * @author Michael Niedermayer <michaelni@gmx.at>
  */
 
-#include "dsputil.h"
 #include "faandct.h"
+#include "libavutil/internal.h"
+#include "libavutil/libm.h"
 
 #define FLOAT float
 
@@ -62,12 +63,11 @@ B6*B0, B6*B1, B6*B2, B6*B3, B6*B4, B6*B5, B6*B6, B6*B7,
 B7*B0, B7*B1, B7*B2, B7*B3, B7*B4, B7*B5, B7*B6, B7*B7,
 };
 
-static av_always_inline void row_fdct(FLOAT temp[64], DCTELEM * data)
+static av_always_inline void row_fdct(FLOAT temp[64], int16_t *data)
 {
     FLOAT tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     FLOAT tmp10, tmp11, tmp12, tmp13;
     FLOAT z2, z4, z11, z13;
-    FLOAT av_unused z5;
     int i;
 
     for (i=0; i<8*8; i+=8) {
@@ -98,9 +98,12 @@ static av_always_inline void row_fdct(FLOAT temp[64], DCTELEM * data)
         tmp6 += tmp7;
 
 #if 0
-        z5= (tmp4 - tmp6) * A5;
-        z2= tmp4*A2 + z5;
-        z4= tmp6*A4 + z5;
+        {
+            FLOAT z5;
+            z5 = (tmp4 - tmp6) * A5;
+            z2 =  tmp4         * A2 + z5;
+            z4 =  tmp6         * A4 + z5;
+        }
 #else
         z2= tmp4*(A2+A5) - tmp6*A5;
         z4= tmp6*(A4-A5) + tmp4*A5;
@@ -117,12 +120,11 @@ static av_always_inline void row_fdct(FLOAT temp[64], DCTELEM * data)
     }
 }
 
-void ff_faandct(DCTELEM * data)
+void ff_faandct(int16_t *data)
 {
     FLOAT tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     FLOAT tmp10, tmp11, tmp12, tmp13;
     FLOAT z2, z4, z11, z13;
-    FLOAT av_unused z5;
     FLOAT temp[64];
     int i;
 
@@ -158,9 +160,12 @@ void ff_faandct(DCTELEM * data)
         tmp6 += tmp7;
 
 #if 0
-        z5= (tmp4 - tmp6) * A5;
-        z2= tmp4*A2 + z5;
-        z4= tmp6*A4 + z5;
+        {
+            FLOAT z5;
+            z5 = (tmp4 - tmp6) * A5;
+            z2 =  tmp4         * A2 + z5;
+            z4 =  tmp6         * A4 + z5;
+        }
 #else
         z2= tmp4*(A2+A5) - tmp6*A5;
         z4= tmp6*(A4-A5) + tmp4*A5;
@@ -177,7 +182,7 @@ void ff_faandct(DCTELEM * data)
     }
 }
 
-void ff_faandct248(DCTELEM * data)
+void ff_faandct248(int16_t *data)
 {
     FLOAT tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
     FLOAT tmp10, tmp11, tmp12, tmp13;

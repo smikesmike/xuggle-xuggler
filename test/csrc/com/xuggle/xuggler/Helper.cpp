@@ -69,8 +69,8 @@ namespace com { namespace xuggle { namespace xuggler {
     }
     expected_codec_ids = new ICodec::ID[expected_num_streams];
     if (expected_codec_ids) {
-      expected_codec_ids[0] = ICodec::CODEC_ID_FLV1;
-      expected_codec_ids[1] = ICodec::CODEC_ID_MP3;
+      expected_codec_ids[0] = ICodec::AV_CODEC_ID_FLV1;
+      expected_codec_ids[1] = ICodec::AV_CODEC_ID_MP3;
     }
 
     container_isopen = false;
@@ -472,6 +472,12 @@ namespace com { namespace xuggle { namespace xuggler {
           
         } else if (newcodec->getType() == ICodec::CODEC_TYPE_AUDIO)
         {
+            if (newcodec->getID() == ICodec::AV_CODEC_ID_MP3){
+                newcoder->setSampleFormat(IAudioSamples::FMT_S16P);
+            }
+            if (newcodec->getID() == ICodec::AV_CODEC_ID_VORBIS){
+                newcoder->setSampleFormat(IAudioSamples::FMT_FLT);
+            }
           if (channels > 0)
             newcoder->setChannels(channels);
           if (sampleRate > 0)
@@ -1127,7 +1133,8 @@ namespace com { namespace xuggle { namespace xuggler {
         VS_TUT_ENSURE("could not encode audio", packet->getSize() > 0);
         RefPointer<IBuffer> encodedBuffer = packet->getData();
         VS_TUT_ENSURE("no encoded data", encodedBuffer);
-        VS_TUT_ENSURE("less data than there should be",
+        printf("size %d %d \n", encodedBuffer->getBufferSize(), packet->getSize());
+        VS_TUT_ENSURE("less data than there should be ",
             encodedBuffer->getBufferSize() >=
             packet->getSize());
 
