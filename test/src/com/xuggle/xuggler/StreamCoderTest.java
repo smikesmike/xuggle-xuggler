@@ -300,9 +300,14 @@ public class StreamCoderTest extends TestCase
     log.debug("Coder: {}", coder.getCodec());
     coder.setSampleRate(22050);
     coder.setChannels(1);
+    coder.setSampleFormat(IAudioSamples.Format.FMT_S16);
       final int open = coder.open(null, null);
       IError make = IError.make(open);
-    assertTrue("could not open coder "+make.getDescription(),  open >= 0);
+      String description = "";
+      if (make != null){
+          description = make.getDescription();
+      }
+    assertTrue("could not open coder "+description,  open >= 0);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
     coder.setDefaultAudioFrameSize(3);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());

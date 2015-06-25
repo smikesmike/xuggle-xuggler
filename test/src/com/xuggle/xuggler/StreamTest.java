@@ -222,7 +222,7 @@ public class StreamTest extends TestCase
     // get the mp3 stream, which should require parsing.
     mStream = mContainer.getStream(0);
 
-    assertEquals(IStream.ParseType.PARSE_FULL, mStream.getParseType());
+    assertEquals(IStream.ParseType.PARSE_FULL_RAW, mStream.getParseType());
     mStream.setParseType(IStream.ParseType.PARSE_NONE);
     assertEquals(IStream.ParseType.PARSE_NONE, mStream.getParseType());
     

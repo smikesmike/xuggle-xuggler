@@ -129,7 +129,7 @@ implements IMediaWriter
   /** The default sample format. */
 
   private static final IAudioSamples.Format DEFAULT_SAMPLE_FORMAT = 
-    IAudioSamples.Format.FMT_S16;
+    IAudioSamples.Format.FMT_S16P;
 
   /** The default time base. */
 
@@ -372,7 +372,7 @@ implements IMediaWriter
     IStreamCoder coder = stream.getStreamCoder();
     coder.setChannels(channelCount);
     coder.setSampleRate(sampleRate);
-    coder.setSampleFormat(DEFAULT_SAMPLE_FORMAT);
+    coder.setSampleFormat(codec.getSupportedAudioSampleFormat(0));
 
     // add the stream to the media writer
     
@@ -892,11 +892,12 @@ implements IMediaWriter
     IStreamCoder coder = stream.getStreamCoder();
     try
     {
-      if (IAudioSamples.Format.FMT_S16 != coder.getSampleFormat())
-      {
-        throw new IllegalArgumentException("stream[" + streamIndex
-            + "] is not 16 bit audio");
-      }
+//      Useless because format managment change in new version of xuggler      
+//      if (IAudioSamples.Format.FMT_S16 != coder.getSampleFormat())
+//      {
+//        throw new IllegalArgumentException("stream[" + streamIndex
+//            + "] is not 16 bit audio");
+//      }
 
       // establish the number of samples
 
@@ -1227,6 +1228,10 @@ implements IMediaWriter
   {
     // flush coders
 
+    long audioDts = 0;
+    long audioPts = 0;
+    long videoDts = 0;
+    long videoPts = 0;
     for (IStream stream: mStreams.values())
     {
       IStreamCoder coder = stream.getStreamCoder();
@@ -1240,6 +1245,13 @@ implements IMediaWriter
         IPacket packet = IPacket.make();
         while (coder.encodeAudio(packet, null, 0) >= 0 && packet.isComplete())
         {
+          if (audioPts == 0){
+            audioDts = packet.getDts();
+            audioPts = packet.getPts();
+          }else{
+            packet.setPts(audioPts+=packet.getDuration());
+            packet.setDts(audioDts+=packet.getDuration());
+          }
           writePacket(packet);
           packet.delete();
           packet = IPacket.make();
@@ -1254,6 +1266,13 @@ implements IMediaWriter
         IPacket packet = IPacket.make();
         while (coder.encodeVideo(packet, null, 0) >= 0 && packet.isComplete())
         {
+          if (videoPts == 0){
+            videoDts = packet.getDts();
+            videoPts = packet.getPts();
+          }else{
+            packet.setPts(videoPts+=packet.getDuration());
+            packet.setDts(videoDts+=packet.getDuration());
+          }
           writePacket(packet);
           packet.delete();
           packet = IPacket.make();

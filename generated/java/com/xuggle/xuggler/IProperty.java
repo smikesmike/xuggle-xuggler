@@ -159,7 +159,15 @@ public class IProperty extends RefCounted {
     PROPERTY_STRING,
     PROPERTY_RATIONAL,
     PROPERTY_BINARY,
+    PROPERTY_DICT,
     PROPERTY_CONST(XugglerJNI.IProperty_PROPERTY_CONST_get()),
+    PROPERTY_IMAGE_SIZE(XugglerJNI.IProperty_PROPERTY_IMAGE_SIZE_get()),
+    PROPERTY_PIXEL_FMT(XugglerJNI.IProperty_PROPERTY_PIXEL_FMT_get()),
+    PROPERTY_SAMPLE_FMT(XugglerJNI.IProperty_PROPERTY_SAMPLE_FMT_get()),
+    PROPERTY_VIDEO_RATE(XugglerJNI.IProperty_PROPERTY_VIDEO_RATE_get()),
+    PROPERTY_DURATION(XugglerJNI.IProperty_PROPERTY_DURATION_get()),
+    PROPERTY_COLOR(XugglerJNI.IProperty_PROPERTY_COLOR_get()),
+    PROPERTY_CHANNEL_LAYOUT(XugglerJNI.IProperty_PROPERTY_CHANNEL_LAYOUT_get()),
     PROPERTY_UNKNOWN(XugglerJNI.IProperty_PROPERTY_UNKNOWN_get());
 
     public final int swigValue() {
@@ -206,7 +214,10 @@ public class IProperty extends RefCounted {
     FLAG_METADATA(XugglerJNI.IProperty_FLAG_METADATA_get()),
     FLAG_AUDIO_PARAM(XugglerJNI.IProperty_FLAG_AUDIO_PARAM_get()),
     FLAG_VIDEO_PARAM(XugglerJNI.IProperty_FLAG_VIDEO_PARAM_get()),
-    FLAG_SUBTITLE_PARAM(XugglerJNI.IProperty_FLAG_SUBTITLE_PARAM_get());
+    FLAG_SUBTITLE_PARAM(XugglerJNI.IProperty_FLAG_SUBTITLE_PARAM_get()),
+    FLAG_EXPORT(XugglerJNI.IProperty_FLAG_EXPORT_get()),
+    FLAG_READONLY(XugglerJNI.IProperty_FLAG_READONLY_get()),
+    FLAG_FILTERING_PARAM(XugglerJNI.IProperty_FILTERING_PARAM_get());
 
     public final int swigValue() {
       return swigValue;
