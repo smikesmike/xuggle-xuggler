@@ -29,9 +29,19 @@ public class XugglerJNI {
   
 
   public final static native int IProperty_PROPERTY_CONST_get();
+  public final static native int IProperty_PROPERTY_IMAGE_SIZE_get();
+  public final static native int IProperty_PROPERTY_PIXEL_FMT_get();
+  public final static native int IProperty_PROPERTY_SAMPLE_FMT_get();
+  public final static native int IProperty_PROPERTY_VIDEO_RATE_get();
+  public final static native int IProperty_PROPERTY_DURATION_get();
+  public final static native int IProperty_PROPERTY_COLOR_get();
+  public final static native int IProperty_PROPERTY_CHANNEL_LAYOUT_get();
   public final static native int IProperty_PROPERTY_UNKNOWN_get();
   public final static native int IProperty_FLAG_ENCODING_PARAM_get();
   public final static native int IProperty_FLAG_DECODING_PARAM_get();
+  public final static native int IProperty_FLAG_EXPORT_get();
+  public final static native int IProperty_FLAG_READONLY_get();
+  public final static native int IProperty_FILTERING_PARAM_get();
   public final static native int IProperty_FLAG_METADATA_get();
   public final static native int IProperty_FLAG_AUDIO_PARAM_get();
   public final static native int IProperty_FLAG_VIDEO_PARAM_get();
@@ -287,6 +297,7 @@ public class XugglerJNI {
   public final static native int ICodec_AV_CODEC_ID_FIRST_SUBTITLE_get();
   public final static native int ICodec_AV_CODEC_ID_DVD_SUBTITLE_get();
   public final static native int ICodec_AV_CODEC_ID_MICRODVD_get();
+  public final static native int ICodec_AV_CODEC_ID_EIA608_get();
   public final static native int ICodec_AV_CODEC_ID_JACOSUB_get();
   public final static native int ICodec_AV_CODEC_ID_SAMI_get();
   public final static native int ICodec_AV_CODEC_ID_REALTEXT_get();

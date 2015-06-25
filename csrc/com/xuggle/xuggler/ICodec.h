@@ -26,8 +26,6 @@
 #include <com/xuggle/xuggler/IPixelFormat.h>
 #include <com/xuggle/xuggler/IAudioSamples.h>
 
-#define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
-#define MKBETAG(a,b,c,d) ((d) | ((c) << 8) | ((b) << 16) | ((unsigned)(a) << 24))
 #ifndef LIBAVCODEC_VERSION_MAJOR
 #define LIBAVCODEC_VERSION_MAJOR 56
 #endif // ! LIBAVCODEC_VERSION_MAJOR
@@ -468,7 +466,7 @@ public:
     AV_CODEC_ID_DVB_TELETEXT,
     AV_CODEC_ID_SRT,
     AV_CODEC_ID_MICRODVD   = MKBETAG('m','D','V','D'),
-    AV_CODEC_ID_EIA_608,//TODO correct swig bug
+    AV_CODEC_ID_EIA_608    = MKBETAG('c','6','0','8'),
     AV_CODEC_ID_JACOSUB    = MKBETAG('J','S','U','B'),
     AV_CODEC_ID_SAMI       = MKBETAG('S','A','M','I'),
     AV_CODEC_ID_REALTEXT   = MKBETAG('R','T','X','T'),

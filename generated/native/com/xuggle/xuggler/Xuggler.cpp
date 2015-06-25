@@ -364,6 +364,83 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1
   return jresult;
 }
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1IMAGE_1SIZE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Type)com::xuggle::xuggler::IProperty::PROPERTY_IMAGE_SIZE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1PIXEL_1FMT_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Type)com::xuggle::xuggler::IProperty::PROPERTY_PIXEL_FMT;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1SAMPLE_1FMT_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Type)com::xuggle::xuggler::IProperty::PROPERTY_SAMPLE_FMT;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1VIDEO_1RATE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Type)com::xuggle::xuggler::IProperty::PROPERTY_VIDEO_RATE;
+  jresult = (jint)result; 
+  return jresult;
+}
+     
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1DURATION_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Type)com::xuggle::xuggler::IProperty::PROPERTY_DURATION;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1COLOR_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Type)com::xuggle::xuggler::IProperty::PROPERTY_COLOR;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1CHANNEL_1LAYOUT_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Type)com::xuggle::xuggler::IProperty::PROPERTY_CHANNEL_LAYOUT;
+  jresult = (jint)result; 
+  return jresult;
+}
 
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1FLAG_1ENCODING_1PARAM_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
@@ -436,6 +513,38 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1FLAG_1SUBT
   return jresult;
 }
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1FLAG_1EXPORT_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Flags)com::xuggle::xuggler::IProperty::FLAG_EXPORT;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1FLAG_1READONLY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Flags)com::xuggle::xuggler::IProperty::FLAG_READONLY;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1FLAG_1FILTERING_1PARAM_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Flags)com::xuggle::xuggler::IProperty::FLAG_FILTERING_PARAM;
+  jresult = (jint)result; 
+  return jresult;
+}
 
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1SEARCH_1DEFAULT_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
@@ -11808,6 +11917,17 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1AV_1CODEC_1ID
   (void)jenv;
   (void)jcls;
   result = (com::xuggle::xuggler::ICodec::ID)com::xuggle::xuggler::ICodec::AV_CODEC_ID_MICRODVD;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1AV_1CODEC_1ID_1EIA608_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::ICodec::ID result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::ICodec::ID)com::xuggle::xuggler::ICodec::AV_CODEC_ID_EIA_608;
   jresult = (jint)result; 
   return jresult;
 }

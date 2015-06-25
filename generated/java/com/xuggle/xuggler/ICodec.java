@@ -799,7 +799,7 @@ public class ICodec extends RefCounted {
     AV_CODEC_ID_DVB_TELETEXT,
     AV_CODEC_ID_SRT,
     AV_CODEC_ID_MICRODVD(XugglerJNI.ICodec_AV_CODEC_ID_MICRODVD_get()),
-    AV_CODEC_ID_EIA_608,
+    AV_CODEC_ID_EIA_608(XugglerJNI.ICodec_AV_CODEC_ID_EIA608_get()),
     AV_CODEC_ID_JACOSUB(XugglerJNI.ICodec_AV_CODEC_ID_JACOSUB_get()),
     AV_CODEC_ID_SAMI(XugglerJNI.ICodec_AV_CODEC_ID_SAMI_get()),
     AV_CODEC_ID_REALTEXT(XugglerJNI.ICodec_AV_CODEC_ID_REALTEXT_get()),

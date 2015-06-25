@@ -39,7 +39,7 @@ namespace com { namespace xuggle { namespace xuggler {
     /**
      * The different type of options that are supported by Xuggler.
      * 
-     * Well, actually by FFMPEG, but you get the idea.
+     * Well, actually by FFMPEG, but you get the idea. see opt.h
      */
     typedef enum {
       PROPERTY_FLAGS,
@@ -49,11 +49,19 @@ namespace com { namespace xuggle { namespace xuggler {
       PROPERTY_FLOAT,
       PROPERTY_STRING,
       PROPERTY_RATIONAL,
-      PROPERTY_BINARY,
-      PROPERTY_CONST=128,
+      PROPERTY_BINARY,  ///< offset must point to a pointer immediately followed by an int for the length
+      PROPERTY_DICT,
+      PROPERTY_CONST = 128,
+      PROPERTY_IMAGE_SIZE     = MKBETAG('S','I','Z','E'), ///< offset must point to two consecutive integers
+      PROPERTY_PIXEL_FMT      = MKBETAG('P','F','M','T'),
+      PROPERTY_SAMPLE_FMT     = MKBETAG('S','F','M','T'),
+      PROPERTY_VIDEO_RATE     = MKBETAG('V','R','A','T'), ///< offset must point to AVRational
+      PROPERTY_DURATION       = MKBETAG('D','U','R',' '),
+      PROPERTY_COLOR          = MKBETAG('C','O','L','R'),
+      PROPERTY_CHANNEL_LAYOUT = MKBETAG('C','H','L','A'),
       PROPERTY_UNKNOWN=-1,
     } Type;
-    
+
     typedef enum {
       FLAG_ENCODING_PARAM=1,
       FLAG_DECODING_PARAM=2,
@@ -61,6 +69,9 @@ namespace com { namespace xuggle { namespace xuggler {
       FLAG_AUDIO_PARAM=8,
       FLAG_VIDEO_PARAM=16,
       FLAG_SUBTITLE_PARAM=32,
+      FLAG_EXPORT=64,
+      FLAG_READONLY=128,
+      FLAG_FILTERING_PARAM=(1<<16)
     } Flags;
     
     /**
