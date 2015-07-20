@@ -17631,13 +17631,10 @@ $as_echo_n "checking if you smiled... " >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: let us know: info@xuggle.com" >&5
 $as_echo "let us know: info@xuggle.com" >&6; }
 
-enable_gpl=yes
 VS_ENABLE_GPL=$enable_gpl
 
-$as_echo "#define VS_ENABLE_GPL 1" >>confdefs.h
-
-
  if  test "x$VS_ENABLE_GPL" = "xyes" ; then
+  $as_echo "#define VS_ENABLE_GPL 1" >>confdefs.h
   VS_ENABLE_GPL_TRUE=
   VS_ENABLE_GPL_FALSE='#'
 else

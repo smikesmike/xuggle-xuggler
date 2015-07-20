@@ -352,9 +352,10 @@ AC_DEFINE(VSJNI_USE_JVM_FOR_MEMMANAGEMENT, 1, AC_PACKAGE_NAME [ will use Java to
 AC_MSG_CHECKING([if you smiled])
 AC_MSG_RESULT([let us know: info@xuggle.com])
 
-enable_gpl=yes
 VS_ENABLE_GPL=$enable_gpl
+if test "x$VS_ENABLE_GPL" = "xyes"; then
 AC_DEFINE(VS_ENABLE_GPL, 1, AC_PACKAGE_NAME [ will enable any code that depends on GPL code ])
+fi
 AC_SUBST(VS_ENABLE_GPL)
 AM_CONDITIONAL(VS_ENABLE_GPL,
                [ test "x$VS_ENABLE_GPL" = "xyes" ])
