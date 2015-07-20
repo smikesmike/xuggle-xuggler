@@ -52,7 +52,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-@VS_ENABLE_GPL_TRUE@am__append_1 = \
+#@VS_ENABLE_GPL_TRUE@am__append_1 = \
 @VS_ENABLE_GPL_TRUE@  VideoResampler.cpp 
 
 subdir = csrc/com/xuggle/xuggler
@@ -85,7 +85,7 @@ am__libxuggle_xuggler_la_SOURCES_DIST = AudioResampler.cpp \
 	MediaDataWrapper.cpp MetaData.cpp Packet.cpp Property.cpp \
 	Rational.cpp StreamCoder.cpp Stream.cpp TimeValue.cpp \
 	VideoResampler.cpp
-@VS_ENABLE_GPL_TRUE@am__objects_1 = VideoResampler.lo
+#@VS_ENABLE_GPL_TRUE@am__objects_1 = VideoResampler.lo
 am_libxuggle_xuggler_la_OBJECTS = AudioResampler.lo AudioSamples.lo \
 	Codec.lo Container.lo ContainerFormat.lo Error.lo \
 	VideoPicture.lo Global.lo IAudioResampler.lo IAudioSamples.lo \
@@ -95,7 +95,7 @@ am_libxuggle_xuggler_la_OBJECTS = AudioResampler.lo AudioSamples.lo \
 	IProperty.lo IRational.lo IStreamCoder.lo IStream.lo \
 	ITimeValue.lo IVideoResampler.lo MediaDataWrapper.lo \
 	MetaData.lo Packet.lo Property.lo Rational.lo StreamCoder.lo \
-	Stream.lo TimeValue.lo $(am__objects_1)
+	Stream.lo TimeValue.lo VideoResampler.lo $(am__objects_1)
 nodist_libxuggle_xuggler_la_OBJECTS = Xuggler.lo
 libxuggle_xuggler_la_OBJECTS = $(am_libxuggle_xuggler_la_OBJECTS) \
 	$(nodist_libxuggle_xuggler_la_OBJECTS)
@@ -367,7 +367,7 @@ libxuggle_xuggler_la_SOURCES = AudioResampler.cpp AudioSamples.cpp \
 	IStream.cpp ITimeValue.cpp IVideoResampler.cpp \
 	MediaDataWrapper.cpp MetaData.cpp Packet.cpp Property.cpp \
 	Rational.cpp StreamCoder.cpp Stream.cpp TimeValue.cpp \
-	$(am__append_1)
+	VideoResampler.cpp $(am__append_1)
 nodist_libxuggle_xuggler_la_SOURCES = \
   Xuggler.cpp
 
