@@ -9,17 +9,21 @@
  */
 
 
-#ifndef VARIANCE_H
-#define VARIANCE_H
+#ifndef VP8_COMMON_VARIANCE_H_
+#define VP8_COMMON_VARIANCE_H_
 
-typedef unsigned int(*vp8_sad_fn_t)
-    (
+#include "vpx_config.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef unsigned int(*vp8_sad_fn_t)(
     const unsigned char *src_ptr,
     int source_stride,
     const unsigned char *ref_ptr,
     int ref_stride,
-    int max_sad
-    );
+    unsigned int max_sad);
 
 typedef void (*vp8_copy32xn_fn_t)(
     const unsigned char *src_ptr,
@@ -48,7 +52,7 @@ typedef void (*vp8_sad_multi_d_fn_t)
     (
      const unsigned char *src_ptr,
      int source_stride,
-     unsigned char *ref_ptr[4],
+     const unsigned char * const ref_ptr[],
      int  ref_stride,
      unsigned int *sad_array
     );
@@ -112,4 +116,8 @@ typedef struct variance_vtable
 #endif
 } vp8_variance_fn_ptr_t;
 
+#ifdef __cplusplus
+}  // extern "C"
 #endif
+
+#endif  // VP8_COMMON_VARIANCE_H_

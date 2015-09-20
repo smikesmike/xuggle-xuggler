@@ -9,8 +9,8 @@
  */
 
 
-#ifndef __INC_TREEWRITER_H
-#define __INC_TREEWRITER_H
+#ifndef VP8_ENCODER_TREEWRITER_H_
+#define VP8_ENCODER_TREEWRITER_H_
 
 /* Trees map alphabets into huffman-like codes suitable for an arithmetic
    bit coder.  Timothy S Murphy  11 October 2004 */
@@ -18,6 +18,10 @@
 #include "vp8/common/treecoder.h"
 
 #include "boolhuff.h"       /* for now */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef BOOL_CODER vp8_writer;
 
@@ -42,7 +46,7 @@ typedef BOOL_CODER vp8_writer;
 
 /* Both of these return bits, not scaled bits. */
 
-static __inline unsigned int vp8_cost_branch(const unsigned int ct[2], vp8_prob p)
+static unsigned int vp8_cost_branch(const unsigned int ct[2], vp8_prob p)
 {
     /* Imitate existing calculation */
 
@@ -53,7 +57,7 @@ static __inline unsigned int vp8_cost_branch(const unsigned int ct[2], vp8_prob 
 /* Small functions to write explicit values and tokens, as well as
    estimate their lengths. */
 
-static __inline void vp8_treed_write
+static void vp8_treed_write
 (
     vp8_writer *const w,
     vp8_tree t,
@@ -72,7 +76,7 @@ static __inline void vp8_treed_write
     }
     while (n);
 }
-static __inline void vp8_write_token
+static void vp8_write_token
 (
     vp8_writer *const w,
     vp8_tree t,
@@ -83,7 +87,7 @@ static __inline void vp8_write_token
     vp8_treed_write(w, t, p, x->value, x->Len);
 }
 
-static __inline int vp8_treed_cost(
+static int vp8_treed_cost(
     vp8_tree t,
     const vp8_prob *const p,
     int v,
@@ -103,7 +107,7 @@ static __inline int vp8_treed_cost(
 
     return c;
 }
-static __inline int vp8_cost_token
+static int vp8_cost_token
 (
     vp8_tree t,
     const vp8_prob *const p,
@@ -123,4 +127,8 @@ void vp8_cost_tokens2(
     int *Costs, const vp8_prob *, vp8_tree, int
 );
 
+#ifdef __cplusplus
+}  // extern "C"
 #endif
+
+#endif  // VP8_ENCODER_TREEWRITER_H_
