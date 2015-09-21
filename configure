@@ -17630,6 +17630,12 @@ $as_echo "#define VSJNI_USE_JVM_FOR_MEMMANAGEMENT 1" >>confdefs.h
 $as_echo_n "checking if you smiled... " >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: let us know: info@xuggle.com" >&5
 $as_echo "let us know: info@xuggle.com" >&6; }
+# Check whether --enable-gpl was given.
+if test "${enable_gpl+set}" = set; then :
+  enableval=$enable_gpl;
+else
+  enable_gpl=yes
+fi
 
 VS_ENABLE_GPL=$enable_gpl
 
