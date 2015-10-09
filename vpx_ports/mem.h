@@ -9,19 +9,19 @@
  */
 
 
-#ifndef VPX_PORTS_MEM_H
-#define VPX_PORTS_MEM_H
+#ifndef VPX_PORTS_MEM_H_
+#define VPX_PORTS_MEM_H_
+
 #include "vpx_config.h"
 #include "vpx/vpx_integer.h"
 
-#if defined(__GNUC__) && __GNUC__
+#if (defined(__GNUC__) && __GNUC__) || defined(__SUNPRO_C)
 #define DECLARE_ALIGNED(n,typ,val)  typ val __attribute__ ((aligned (n)))
 #elif defined(_MSC_VER)
 #define DECLARE_ALIGNED(n,typ,val)  __declspec(align(n)) typ val
 #else
 #warning No alignment directives known for this compiler.
 #define DECLARE_ALIGNED(n,typ,val)  typ val
-#endif
 #endif
 
 
@@ -31,8 +31,8 @@
  * within the array.
  */
 #define DECLARE_ALIGNED_ARRAY(a,typ,val,n)\
-typ val##_[(n)+(a)/sizeof(typ)+1];\
-typ *val = (typ*)((((intptr_t)val##_)+(a)-1)&((intptr_t)-(a)))
+  typ val##_[(n)+(a)/sizeof(typ)+1];\
+  typ *val = (typ*)((((intptr_t)val##_)+(a)-1)&((intptr_t)-(a)))
 
 
 /* Indicates that the usage of the specified variable has been audited to assure
@@ -44,3 +44,9 @@ typ *val = (typ*)((((intptr_t)val##_)+(a)-1)&((intptr_t)-(a)))
 #else
 #define UNINITIALIZED_IS_SAFE(x) x
 #endif
+
+#if HAVE_NEON && defined(_MSC_VER)
+#define __builtin_prefetch(x)
+#endif
+
+#endif  // VPX_PORTS_MEM_H_

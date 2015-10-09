@@ -21,18 +21,10 @@ CODEC_DOX :=    mainpage.dox \
 		usage_dx.dox \
 
 # Other doxy files sourced in Markdown
-TXT_DOX-$(CONFIG_VP8)          += vp8_api1_migration.dox
-vp8_api1_migration.dox.DESC     = VP8 API 1.x Migration
-
 TXT_DOX = $(call enabled,TXT_DOX)
 
-%.dox: %.txt
-	@echo "    [DOXY] $@"
-	@$(SRC_PATH_BARE)/examples/gen_example_doxy.php \
-             $(@:.dox=)  "$($@.DESC)" > $@ < $<
-
-
 EXAMPLE_PATH += $(SRC_PATH_BARE) #for CHANGELOG, README, etc
+EXAMPLE_PATH += $(SRC_PATH_BARE)/examples
 
 doxyfile: $(if $(findstring examples, $(ALL_TARGETS)),examples.doxy)
 doxyfile: libs.doxy_template libs.doxy
