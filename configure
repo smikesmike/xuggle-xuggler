@@ -16865,7 +16865,7 @@ case $host in
   HOST_TYPE=Linux
   ;;
 esac
-enable_warningerrors=yes
+#enable_warningerrors=yes
 case $HOST_TYPE in
   Windows)
   HOST_SO_LIBPATH=PATH
