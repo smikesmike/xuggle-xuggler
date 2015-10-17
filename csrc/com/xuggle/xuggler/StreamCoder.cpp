@@ -1409,9 +1409,10 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
             // although we provide space for delaying up to the
             // max H264 delay, in reality we only need delay by 1 tick.
             int32_t delay = FFMAX(mCodecContext->has_b_frames,
-                !!mCodecContext->max_b_frames);
+                mCodecContext->max_b_frames > 0);
+            dts = packet->getAVPacket()->dts;
             if (mCodecContext->coded_frame
-                && mCodecContext->coded_frame->pts != Global::NO_PTS)
+                && mCodecContext->coded_frame->pts != Global::NO_PTS && dts == Global::NO_PTS && delay <= MAX_REORDER_DELAY)
             {
               int64_t pts = mCodecContext->coded_frame->pts;
               mPtsBuffer[0] = pts;

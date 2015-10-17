@@ -1,7 +1,7 @@
 /****************************************************************************
  * quant.S: arm quantization and level-run
  *****************************************************************************
- * Copyright (C) 2009-2012 x264 project
+ * Copyright (C) 2009-2015 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *
@@ -25,8 +25,6 @@
 
 #include "asm.S"
 
-.fpu neon
-
 .section .rodata
 .align 4
 pmovmskb_byte:
@@ -35,7 +33,7 @@ pmovmskb_byte:
 
 .text
 
-.macro QUANT_TWO bias0 bias1 mf0 mf1 mf2 mf3 load_mf=no
+.macro QUANT_TWO bias0 bias1 mf0 mf1 mf2 mf3 mask load_mf=no
     vadd.u16    q8,  q8,  \bias0
     vadd.u16    q9,  q9,  \bias1
 .ifc \load_mf, yes
@@ -55,7 +53,7 @@ pmovmskb_byte:
     veor        q9,  q9,  q15
     vsub.s16    q8,  q8,  q14
     vsub.s16    q9,  q9,  q15
-    vorr        \bias0, q8,  q9
+    vorr        \mask, q8,  q9
     vst1.64     {d16-d19}, [r0,:128]!
 .endm
 
@@ -80,7 +78,7 @@ function x264_quant_2x2_dc_neon
     vsub.s16    d3,  d3,  d0
     vst1.64     {d3}, [r0,:64]
     QUANT_END   d3
-.endfunc
+endfunc
 
 // quant_4x4_dc( int16_t dct[16], int mf, int bias )
 function x264_quant_4x4_dc_neon
@@ -89,10 +87,10 @@ function x264_quant_4x4_dc_neon
     vabs.s16    q9,  q15
     vdup.16     q0,  r2
     vdup.16     q2,  r1
-    QUANT_TWO   q0,  q0,  d4,  d5,  d4,  d5
+    QUANT_TWO   q0,  q0,  d4,  d5,  d4,  d5,  q0
     vorr        d0,  d0,  d1
     QUANT_END   d0
-.endfunc
+endfunc
 
 // quant_4x4( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 function x264_quant_4x4_neon
@@ -101,10 +99,51 @@ function x264_quant_4x4_neon
     vabs.s16    q9,  q15
     vld1.64     {d0-d3}, [r2,:128]
     vld1.64     {d4-d7}, [r1,:128]
-    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7
+    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7, q0
     vorr        d0,  d0,  d1
     QUANT_END   d0
-.endfunc
+endfunc
+
+// quant_4x4x4( int16_t dct[4][16], uint16_t mf[16], uint16_t bias[16] )
+function x264_quant_4x4x4_neon
+    vpush       {d8-d15}
+    vld1.64     {d28-d31}, [r0,:128]
+    vabs.s16    q8,  q14
+    vabs.s16    q9,  q15
+    vld1.64     {d0-d3},   [r2,:128]
+    vld1.64     {d4-d7},   [r1,:128]
+    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7,  q4
+    vld1.64     {d28-d31}, [r0,:128]
+    vabs.s16    q8,  q14
+    vabs.s16    q9,  q15
+    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7,  q5
+    vld1.64     {d28-d31}, [r0,:128]
+    vabs.s16    q8,  q14
+    vabs.s16    q9,  q15
+    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7,  q6
+    vld1.64     {d28-d31}, [r0,:128]
+    vabs.s16    q8,  q14
+    vabs.s16    q9,  q15
+    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7,  q7
+    vorr        d8,  d8,  d9
+    vorr       d10, d10, d11
+    vorr       d12, d12, d13
+    vorr       d14, d14, d15
+    vmov        r0,  r1,  d8
+    vmov        r2,  r3, d10
+    orrs        r0,  r1
+    movne       r0,  #1
+    orrs        r2,  r3
+    orrne       r0,  #2
+    vmov        r1,  r2, d12
+    vmov        r3,  ip, d14
+    orrs        r1,  r2
+    orrne       r0,  #4
+    orrs        r3,  ip
+    orrne       r0,  #8
+    vpop        {d8-d15}
+    bx          lr
+endfunc
 
 // quant_8x8( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
 function x264_quant_8x8_neon
@@ -113,18 +152,18 @@ function x264_quant_8x8_neon
     vabs.s16    q9,  q15
     vld1.64     {d0-d3},   [r2,:128]!
     vld1.64     {d4-d7},   [r1,:128]!
-    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7
+    QUANT_TWO   q0,  q1,  d4,  d5,  d6,  d7,  q0
 .rept 3
     vld1.64     {d28-d31}, [r0,:128]
     vabs.s16    q8,  q14
     vabs.s16    q9,  q15
     vld1.64     {d2-d5},   [r2,:128]!
-    QUANT_TWO   q1,  q2,  d4,  d5,  d6,  d7, yes
+    QUANT_TWO   q1,  q2,  d4,  d5,  d6,  d7,  q1, yes
     vorr        q0,  q0,  q1
 .endr
     vorr        d0,  d0,  d1
     QUANT_END   d0
-.endfunc
+endfunc
 
 .macro DEQUANT_START mf_size offset dc=no
     mov         r3,  #0x2b
@@ -216,7 +255,7 @@ dequant_\size\()_rshift_loop:
     bgt         dequant_\size\()_rshift_loop
 .endif
     bx          lr
-.endfunc
+endfunc
 .endm
 
 DEQUANT 4x4, 4
@@ -266,19 +305,33 @@ dequant_4x4_dc_rshift:
     vmovn.s32   d3,  q13
     vst1.16     {d0-d3},   [r0,:128]
     bx          lr
-.endfunc
+endfunc
 
 
 // int coeff_last( int16_t *l )
 function x264_coeff_last4_arm
-    ldrd        r2,  [r0]
+    ldrd        r2,  r3,  [r0]
     subs        r0,  r3,  #0
     movne       r0,  #2
     movne       r2,  r3
     lsrs        r2,  r2,  #16
     addne       r0,  r0,  #1
     bx          lr
-.endfunc
+endfunc
+
+function x264_coeff_last8_arm
+    ldrd        r2,  r3,  [r0, #8]
+    orrs        ip,  r2,  r3
+    movne       r0,  #4
+    ldrdeq      r2,  r3,  [r0]
+    moveq       r0,  #0
+    tst         r3,  r3
+    addne       r0,  #2
+    movne       r2,  r3
+    lsrs        r2,  r2,  #16
+    addne       r0,  r0,  #1
+    bx          lr
+endfunc
 
 .macro COEFF_LAST_1x size
 function x264_coeff_last\size\()_neon
@@ -300,10 +353,10 @@ function x264_coeff_last\size\()_neon
 
     subs        r1,  ip,  r1,  lsr #2
     addge       r0,  r1,  #\size - 8
-    sublts      r0,  r3,  r0,  lsr #2
+    subslt      r0,  r3,  r0,  lsr #2
     movlt       r0,  #0
     bx          lr
-.endfunc
+endfunc
 .endm
 
 COEFF_LAST_1x 15
@@ -349,7 +402,7 @@ function x264_coeff_last64_neon
 
     subs        r1,  ip,  r1
     addge       r0,  r1,  #32
-    sublts      r0,  ip,  r0
+    subslt      r0,  ip,  r0
     movlt       r0,  #0
     bx          lr
-.endfunc
+endfunc
