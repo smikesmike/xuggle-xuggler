@@ -1,11 +1,11 @@
 /*****************************************************************************
  * frame.h: frame handling
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2015 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
- *          Jason Garrett-Glaser <darkshikari@gmail.com>
+ *          Fiona Glaser <fiona@x264.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,9 +35,11 @@
 typedef struct x264_frame
 {
     /* */
+    uint8_t *base;       /* Base pointer for all malloced data in this frame. */
     int     i_poc;
     int     i_delta_poc[2];
     int     i_type;
+    int     i_forced_type;
     int     i_qpplus1;
     int64_t i_pts;
     int64_t i_dts;
@@ -61,6 +63,7 @@ typedef struct x264_frame
     uint8_t i_bframes;   /* number of bframes following this nonb in coded order */
     float   f_qp_avg_rc; /* QPs as decided by ratecontrol */
     float   f_qp_avg_aq; /* QPs as decided by AQ in addition to ratecontrol */
+    float   f_crf_avg;   /* Average effective CRF for this frame */
     int     i_poc_l0ref0; /* poc of first refframe in L0, used to check if direct temporal is possible */
 
     /* YUV buffer */
@@ -97,6 +100,7 @@ typedef struct x264_frame
     int16_t (*mv16x16)[2];
     int16_t (*lowres_mvs[2][X264_BFRAME_MAX+1])[2];
     uint8_t *field;
+    uint8_t *effective_qp;
 
     /* Stored as (lists_used << LOWRES_COST_SHIFT) + (cost).
      * Doesn't need special addressing for intra cost because
@@ -150,6 +154,7 @@ typedef struct x264_frame
     int     i_reference_count; /* number of threads using this frame (not necessarily the number of pointers) */
     x264_pthread_mutex_t mutex;
     x264_pthread_cond_t  cv;
+    int     i_slice_count; /* Atomically written to/read from with slice threads */
 
     /* periodic intra refresh */
     float   f_pir_position;
@@ -165,6 +170,14 @@ typedef struct x264_frame
 
     /* user data */
     void *opaque;
+
+    /* user frame properties */
+    uint8_t *mb_info;
+    void (*mb_info_free)( void* );
+
+#if HAVE_OPENCL
+    x264_frame_opencl_t opencl;
+#endif
 } x264_frame_t;
 
 /* synchronized frame list */
@@ -224,6 +237,7 @@ void          x264_deblock_init( int cpu, x264_deblock_function_t *pf, int b_mba
 
 void          x264_frame_cond_broadcast( x264_frame_t *frame, int i_lines_completed );
 void          x264_frame_cond_wait( x264_frame_t *frame, int i_lines_completed );
+int           x264_frame_new_slice( x264_t *h, x264_frame_t *frame );
 
 void          x264_threadslice_cond_broadcast( x264_t *h, int pass );
 void          x264_threadslice_cond_wait( x264_t *h, int pass );

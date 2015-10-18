@@ -41,29 +41,14 @@ namespace com { namespace xuggle { namespace xuggler
       IPixelFormat::Type inputFmt)
   {
     Global::init();
-#ifdef VS_ENABLE_GPL
     return VideoResampler::make(outputWidth, outputHeight, outputFmt,
         inputWidth, inputHeight, inputFmt);
-#else
-    // Avoid compiler warnings about unused parameters
-    (void) outputWidth;
-    (void) outputHeight;
-    (void) outputFmt;
-    (void) inputWidth;
-    (void) inputHeight;
-    (void) inputFmt;
-    throw std::invalid_argument("IVideoResampler not supported in this build"); 
-#endif
   }
 
   bool
   IVideoResampler :: isSupported(Feature aFeature)
   {
     (void)aFeature; // ignored for now, but might change
-#ifdef VS_ENABLE_GPL
     return true;
-#else
-    return false;
-#endif
   }
   }}}

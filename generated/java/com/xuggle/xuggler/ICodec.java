@@ -137,7 +137,7 @@ public class ICodec extends RefCounted {
   public static java.util.Collection<ICodec>
   getInstalledCodecs()
   {
-    java.util.Collection<ICodec> retval = new java.util.HashSet<ICodec>();
+    java.util.Collection<ICodec> retval = new java.util.LinkedHashSet<ICodec>();
     int count = getNumInstalledCodecs();
     for(int i=0;i<count;i++)
     {
@@ -602,6 +602,7 @@ public class ICodec extends RefCounted {
     AV_CODEC_ID_SGIRLE_DEPRECATED,
     AV_CODEC_ID_MVC1_DEPRECATED,
     AV_CODEC_ID_MVC2_DEPRECATED,
+    AV_CODEC_ID_HQX,
     AV_CODEC_ID_BRENDER_PIX(XugglerJNI.ICodec_AV_CODEC_ID_BRENDER_PIX_get()),
     AV_CODEC_ID_Y41P(XugglerJNI.ICodec_AV_CODEC_ID_Y41P_get()),
     AV_CODEC_ID_ESCAPE130(XugglerJNI.ICodec_AV_CODEC_ID_ESCAPE130_get()),
@@ -776,6 +777,7 @@ public class ICodec extends RefCounted {
     AV_CODEC_ID_METASOUND,
     AV_CODEC_ID_PAF_AUDIO_DEPRECATED,
     AV_CODEC_ID_ON2AVC,
+    AV_CODEC_ID_DSS_SP,
     AV_CODEC_ID_FFWAVESYNTH(XugglerJNI.ICodec_AV_CODEC_ID_FFWAVESYNTH_get()),
     AV_CODEC_ID_SONIC(XugglerJNI.ICodec_AV_CODEC_ID_SONIC_get()),
     AV_CODEC_ID_SONIC_LS(XugglerJNI.ICodec_AV_CODEC_ID_SONIC_LS_get()),

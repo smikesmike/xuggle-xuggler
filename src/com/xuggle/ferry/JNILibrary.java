@@ -271,7 +271,7 @@ public class JNILibrary implements Comparable<JNILibrary>
       try {
         File dir = getTmpDir();
         // did you know windows REQUIRES .dll.  Sigh.
-        lib = File.createTempFile("xuggle", JNIEnv.getEnv().getOSFamily() == JNIEnv.OSFamily.WINDOWS ? ".dll" : null, dir);
+        lib = ITempFileCreator.Builder.getDefault().createTempFile("xuggle", JNIEnv.getEnv().getOSFamily() == JNIEnv.OSFamily.WINDOWS ? ".dll" : null, dir);
         lib.deleteOnExit();
         out = new FileOutputStream(lib);
         int bytesRead = 0;

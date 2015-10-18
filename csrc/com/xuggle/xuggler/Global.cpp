@@ -134,7 +134,7 @@ namespace com { namespace xuggle { namespace xuggler
       case AV_LOCK_CREATE:
         mutex = com::xuggle::ferry::Mutex::make();
         *ctx = mutex;
-        retval = !!mutex;
+        retval = !mutex;
         break;
       case AV_LOCK_DESTROY:
         if (mutex) mutex->release();

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc.h: motion compensation
  *****************************************************************************
- * Copyright (C) 2004-2012 x264 project
+ * Copyright (C) 2004-2015 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
@@ -41,6 +41,8 @@ typedef struct x264_weight_t
 } ALIGNED_16( x264_weight_t );
 
 extern const x264_weight_t x264_weight_none[3];
+extern const uint8_t x264_hpel_ref0[16];
+extern const uint8_t x264_hpel_ref1[16];
 
 #define SET_WEIGHT( w, b, s, d, o )\
 {\
@@ -86,6 +88,7 @@ typedef struct
     void (*load_deinterleave_chroma_fdec)( pixel *dst, pixel *src, intptr_t i_src, int height );
 
     void (*plane_copy)( pixel *dst, intptr_t i_dst, pixel *src, intptr_t i_src, int w, int h );
+    void (*plane_copy_swap)( pixel *dst, intptr_t i_dst, pixel *src, intptr_t i_src, int w, int h );
     void (*plane_copy_interleave)( pixel *dst,  intptr_t i_dst, pixel *srcu, intptr_t i_srcu,
                                    pixel *srcv, intptr_t i_srcv, int w, int h );
     /* may write up to 15 pixels off the end of each plane */
@@ -93,6 +96,9 @@ typedef struct
                                      pixel *src,  intptr_t i_src, int w, int h );
     void (*plane_copy_deinterleave_rgb)( pixel *dsta, intptr_t i_dsta, pixel *dstb, intptr_t i_dstb,
                                          pixel *dstc, intptr_t i_dstc, pixel *src,  intptr_t i_src, int pw, int w, int h );
+    void (*plane_copy_deinterleave_v210)( pixel *dsty, intptr_t i_dsty,
+                                          pixel *dstc, intptr_t i_dstc,
+                                          uint32_t *src, intptr_t i_src, int w, int h );
     void (*hpel_filter)( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
                          intptr_t i_stride, int i_width, int i_height, int16_t *buf );
 
@@ -119,10 +125,14 @@ typedef struct
     weight_fn_t *offsetsub;
     void (*weight_cache)( x264_t *, x264_weight_t * );
 
-    void (*mbtree_propagate_cost)( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
+    void (*mbtree_propagate_cost)( int16_t *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                    uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
+
+    void (*mbtree_propagate_list)( x264_t *h, uint16_t *ref_costs, int16_t (*mvs)[2],
+                                   int16_t *propagate_amount, uint16_t *lowres_costs,
+                                   int bipred_weight, int mb_y, int len, int list );
 } x264_mc_functions_t;
 
-void x264_mc_init( int cpu, x264_mc_functions_t *pf );
+void x264_mc_init( int cpu, x264_mc_functions_t *pf, int cpu_independent );
 
 #endif

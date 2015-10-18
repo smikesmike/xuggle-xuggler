@@ -47,15 +47,16 @@ libxuggle_xuggler_la_SOURCES= \
   Rational.cpp \
   StreamCoder.cpp \
   Stream.cpp \
-  TimeValue.cpp
+  TimeValue.cpp \
+  VideoResampler.cpp
 
 nodist_libxuggle_xuggler_la_SOURCES= \
   Xuggler.cpp
 
-if VS_ENABLE_GPL
-libxuggle_xuggler_la_SOURCES+= \
-  VideoResampler.cpp 
-endif
+#if VS_ENABLE_GPL
+#libxuggle_xuggler_la_SOURCES+= \
+#  VideoResampler.cpp 
+#endif
 
 libxuggle_xuggler_ladir=$(includedir)/$(VS_CPP_PATH)
 libxuggle_xuggler_la_HEADERS= \

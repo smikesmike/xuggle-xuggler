@@ -8,6 +8,8 @@ vpath %.S $(SRCPATH)
 vpath %.asm $(SRCPATH)
 vpath %.rc $(SRCPATH)
 
+GENERATED =
+
 all: default
 default:
 
@@ -33,6 +35,8 @@ OBJSO =
 OBJCLI =
 
 OBJCHK = tools/checkasm.o
+
+OBJEXAMPLE = example.o
 
 CONFIG := $(shell cat config.h)
 
@@ -67,9 +71,8 @@ ifneq ($(findstring HAVE_GPAC 1, $(CONFIG)),)
 SRCCLI += output/mp4.c
 endif
 
-# Visualization sources
-ifneq ($(findstring HAVE_VISUALIZE 1, $(CONFIG)),)
-SRCS   += common/visualize.c common/display-x11.c
+ifneq ($(findstring HAVE_LSMASH 1, $(CONFIG)),)
+SRCCLI += output/mp4_lsmash.c
 endif
 
 # MMX/SSE optims
@@ -84,20 +87,17 @@ X86SRC0 += sad-a.asm
 endif
 X86SRC = $(X86SRC0:%=common/x86/%)
 
-ifeq ($(ARCH),X86)
+ifeq ($(SYS_ARCH),X86)
 ARCH_X86 = yes
 ASMSRC   = $(X86SRC) common/x86/pixel-32.asm
-ASFLAGS += -DARCH_X86_64=0
 endif
 
-ifeq ($(ARCH),X86_64)
+ifeq ($(SYS_ARCH),X86_64)
 ARCH_X86 = yes
 ASMSRC   = $(X86SRC:-32.asm=-64.asm) common/x86/trellis-64.asm
-ASFLAGS += -DARCH_X86_64=1
 endif
 
 ifdef ARCH_X86
-ASFLAGS += -I$(SRCPATH)/common/x86/
 SRCS   += common/x86/mc-c.c common/x86/predict-c.c
 OBJASM  = $(ASMSRC:%.asm=%.o)
 $(OBJASM): common/x86/x86inc.asm common/x86/x86util.asm
@@ -106,7 +106,7 @@ endif
 endif
 
 # AltiVec optims
-ifeq ($(ARCH),PPC)
+ifeq ($(SYS_ARCH),PPC)
 ifneq ($(AS),)
 SRCS += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c \
         common/ppc/quant.c common/ppc/deblock.c \
@@ -115,7 +115,7 @@ endif
 endif
 
 # NEON optims
-ifeq ($(ARCH),ARM)
+ifeq ($(SYS_ARCH),ARM)
 ifneq ($(AS),)
 ASMSRC += common/arm/cpu-a.S common/arm/pixel-a.S common/arm/mc-a.S \
           common/arm/dct-a.S common/arm/quant-a.S common/arm/deblock-a.S \
@@ -125,11 +125,30 @@ OBJASM  = $(ASMSRC:%.S=%.o)
 endif
 endif
 
-# VIS optims
-ifeq ($(ARCH),UltraSPARC)
-ifeq ($(findstring HIGH_BIT_DEPTH, $(CONFIG)),)
-ASMSRC += common/sparc/pixel.asm
-OBJASM  = $(ASMSRC:%.asm=%.o)
+# AArch64 NEON optims
+ifeq ($(SYS_ARCH),AARCH64)
+ifneq ($(AS),)
+ASMSRC += common/aarch64/bitstream-a.S \
+          common/aarch64/cabac-a.S     \
+          common/aarch64/dct-a.S     \
+          common/aarch64/deblock-a.S \
+          common/aarch64/mc-a.S      \
+          common/aarch64/pixel-a.S   \
+          common/aarch64/predict-a.S \
+          common/aarch64/quant-a.S
+SRCS   += common/aarch64/asm-offsets.c \
+          common/aarch64/mc-c.c        \
+          common/aarch64/predict-c.c
+OBJASM  = $(ASMSRC:%.S=%.o)
+endif
+endif
+
+# MSA optims
+ifeq ($(SYS_ARCH),MIPS)
+ifneq ($(findstring HAVE_MSA 1, $(CONFIG)),)
+SRCS += common/mips/mc-c.c common/mips/dct-c.c \
+        common/mips/deblock-c.c common/mips/pixel-c.c \
+        common/mips/predict-c.c common/mips/quant-c.c
 endif
 endif
 
@@ -145,39 +164,50 @@ OBJSO  += $(if $(RC), x264res.dll.o)
 endif
 endif
 
+ifeq ($(HAVE_OPENCL),yes)
+common/oclobj.h: common/opencl/x264-cl.h $(wildcard $(SRCPATH)/common/opencl/*.cl)
+	cat $^ | $(SRCPATH)/tools/cltostr.sh $@
+GENERATED += common/oclobj.h
+SRCS += common/opencl.c encoder/slicetype-cl.c
+endif
+
 OBJS   += $(SRCS:%.c=%.o)
 OBJCLI += $(SRCCLI:%.c=%.o)
 OBJSO  += $(SRCSO:%.c=%.o)
 
-.PHONY: all default fprofiled clean distclean install uninstall lib-static lib-shared cli install-lib-dev install-lib-static install-lib-shared install-cli
+.PHONY: all default fprofiled clean distclean install install-* uninstall cli lib-* etags
 
 cli: x264$(EXE)
 lib-static: $(LIBX264)
 lib-shared: $(SONAME)
 
-$(LIBX264): .depend $(OBJS) $(OBJASM)
+$(LIBX264): $(GENERATED) .depend $(OBJS) $(OBJASM)
 	rm -f $(LIBX264)
 	$(AR)$@ $(OBJS) $(OBJASM)
 	$(if $(RANLIB), $(RANLIB) $@)
 
-$(SONAME): .depend $(OBJS) $(OBJASM) $(OBJSO)
+$(SONAME): $(GENERATED) .depend $(OBJS) $(OBJASM) $(OBJSO)
 	$(LD)$@ $(OBJS) $(OBJASM) $(OBJSO) $(SOFLAGS) $(LDFLAGS)
 
 ifneq ($(EXE),)
-.PHONY: x264 checkasm
+.PHONY: x264 checkasm example
 x264: x264$(EXE)
 checkasm: checkasm$(EXE)
+example: example$(EXE)
 endif
 
-x264$(EXE): .depend $(OBJCLI) $(CLI_LIBX264)
+x264$(EXE): $(GENERATED) .depend $(OBJCLI) $(CLI_LIBX264)
 	$(LD)$@ $(OBJCLI) $(CLI_LIBX264) $(LDFLAGSCLI) $(LDFLAGS)
 
-checkasm$(EXE): .depend $(OBJCHK) $(LIBX264)
+checkasm$(EXE): $(GENERATED) .depend $(OBJCHK) $(LIBX264)
 	$(LD)$@ $(OBJCHK) $(LIBX264) $(LDFLAGS)
 
-$(OBJS) $(OBJASM) $(OBJSO) $(OBJCLI) $(OBJCHK): .depend
+example$(EXE): $(GENERATED) .depend $(OBJEXAMPLE) $(LIBX264)
+	$(LD)$@ $(OBJEXAMPLE) $(LIBX264) $(LDFLAGS)
 
-%.o: %.asm
+$(OBJS) $(OBJASM) $(OBJSO) $(OBJCLI) $(OBJCHK) $(OBJEXAMPLE): .depend
+
+%.o: %.asm common/x86/x86inc.asm common/x86/x86util.asm
 	$(AS) $(ASFLAGS) -o $@ $<
 	-@ $(if $(STRIP), $(STRIP) -x $@) # delete local/anonymous symbols, so they don't show up in oprofile
 
@@ -186,14 +216,19 @@ $(OBJS) $(OBJASM) $(OBJSO) $(OBJCLI) $(OBJCHK): .depend
 	-@ $(if $(STRIP), $(STRIP) -x $@) # delete local/anonymous symbols, so they don't show up in oprofile
 
 %.dll.o: %.rc x264.h
-	$(RC)$@ -DDLL $<
+	$(RC) $(RCFLAGS)$@ -DDLL $<
 
 %.o: %.rc x264.h
-	$(RC)$@ $<
+	$(RC) $(RCFLAGS)$@ $<
 
 .depend: config.mak
 	@rm -f .depend
+	@echo 'dependency file generation...'
+ifeq ($(COMPILER),CL)
+	@$(foreach SRC, $(addprefix $(SRCPATH)/, $(SRCS) $(SRCCLI) $(SRCSO)), $(SRCPATH)/tools/msvsdepend.sh "$(CC)" "$(CFLAGS)" "$(SRC)" "$(SRC:$(SRCPATH)/%.c=%.o)" 1>> .depend;)
+else
 	@$(foreach SRC, $(addprefix $(SRCPATH)/, $(SRCS) $(SRCCLI) $(SRCSO)), $(CC) $(CFLAGS) $(SRC) $(DEPMT) $(SRC:$(SRCPATH)/%.c=%.o) $(DEPMM) 1>> .depend;)
+endif
 
 config.mak:
 	./configure
@@ -224,43 +259,49 @@ fprofiled:
 	$(MAKE) clean
 	$(MAKE) x264$(EXE) CFLAGS="$(CFLAGS) $(PROF_GEN_CC)" LDFLAGS="$(LDFLAGS) $(PROF_GEN_LD)"
 	$(foreach V, $(VIDS), $(foreach I, 0 1 2 3 4 5 6 7, ./x264$(EXE) $(OPT$I) --threads 1 $(V) -o $(DEVNULL) ;))
+ifeq ($(COMPILER),CL)
+# Because Visual Studio timestamps the object files within the PGD, it fails to build if they change - only the executable should be deleted
+	rm -f x264$(EXE)
+else
 	rm -f $(SRC2:%.c=%.o)
+endif
 	$(MAKE) CFLAGS="$(CFLAGS) $(PROF_USE_CC)" LDFLAGS="$(LDFLAGS) $(PROF_USE_LD)"
-	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno) *.dyn pgopti.dpi pgopti.dpi.lock
+	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno) *.dyn pgopti.dpi pgopti.dpi.lock *.pgd *.pgc
 endif
 
 clean:
 	rm -f $(OBJS) $(OBJASM) $(OBJCLI) $(OBJSO) $(SONAME) *.a *.lib *.exp *.pdb x264 x264.exe .depend TAGS
-	rm -f checkasm checkasm.exe $(OBJCHK)
-	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno) *.dyn pgopti.dpi pgopti.dpi.lock
+	rm -f checkasm checkasm.exe $(OBJCHK) $(GENERATED) x264_lookahead.clbin
+	rm -f example example.exe $(OBJEXAMPLE)
+	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno) *.dyn pgopti.dpi pgopti.dpi.lock *.pgd *.pgc
 
 distclean: clean
-	rm -f config.mak x264_config.h config.h config.log x264.pc x264.def
+	rm -f config.mak x264_config.h config.h config.log x264.pc x264.def conftest*
 
 install-cli: cli
-	install -d $(DESTDIR)$(bindir)
-	install x264$(EXE) $(DESTDIR)$(bindir)
+	$(INSTALL) -d $(DESTDIR)$(bindir)
+	$(INSTALL) x264$(EXE) $(DESTDIR)$(bindir)
 
 install-lib-dev:
-	install -d $(DESTDIR)$(includedir)
-	install -d $(DESTDIR)$(libdir)
-	install -d $(DESTDIR)$(libdir)/pkgconfig
-	install -m 644 $(SRCPATH)/x264.h $(DESTDIR)$(includedir)
-	install -m 644 x264_config.h $(DESTDIR)$(includedir)
-	install -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
+	$(INSTALL) -d $(DESTDIR)$(includedir)
+	$(INSTALL) -d $(DESTDIR)$(libdir)
+	$(INSTALL) -d $(DESTDIR)$(libdir)/pkgconfig
+	$(INSTALL) -m 644 $(SRCPATH)/x264.h $(DESTDIR)$(includedir)
+	$(INSTALL) -m 644 x264_config.h $(DESTDIR)$(includedir)
+	$(INSTALL) -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
 
 install-lib-static: lib-static install-lib-dev
-	install -m 644 $(LIBX264) $(DESTDIR)$(libdir)
+	$(INSTALL) -m 644 $(LIBX264) $(DESTDIR)$(libdir)
 	$(if $(RANLIB), $(RANLIB) $(DESTDIR)$(libdir)/$(LIBX264))
 
 install-lib-shared: lib-shared install-lib-dev
 ifneq ($(IMPLIBNAME),)
-	install -d $(DESTDIR)$(bindir)
-	install -m 755 $(SONAME) $(DESTDIR)$(bindir)
-	install -m 644 $(IMPLIBNAME) $(DESTDIR)$(libdir)
+	$(INSTALL) -d $(DESTDIR)$(bindir)
+	$(INSTALL) -m 755 $(SONAME) $(DESTDIR)$(bindir)
+	$(INSTALL) -m 644 $(IMPLIBNAME) $(DESTDIR)$(libdir)
 else ifneq ($(SONAME),)
 	ln -f -s $(SONAME) $(DESTDIR)$(libdir)/libx264.$(SOSUFFIX)
-	install -m 755 $(SONAME) $(DESTDIR)$(libdir)
+	$(INSTALL) -m 755 $(SONAME) $(DESTDIR)$(libdir)
 endif
 
 uninstall:

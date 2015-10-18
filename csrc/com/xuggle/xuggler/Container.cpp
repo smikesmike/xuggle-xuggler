@@ -261,7 +261,7 @@ namespace com { namespace xuggle { namespace xuggler
           mCustomIOHandler,
           Container_url_read,
           Container_url_write,
-          NULL);//Container_url_seek don't work with some media stream
+          mCustomIOHandler->url_seekflags(url,0) == URLProtocolHandler::SK_NOT_SEEKABLE ? NULL : Container_url_seek);//Container_url_seek is necessary for some media (mov format)
       if (!mFormatContext->pb)
         av_free(buffer);
     }

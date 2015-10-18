@@ -120,7 +120,7 @@ esac
 HOST_CPU=$host_cpu
 HOST_VENDOR=$host_vendor
 # strip gnu from the OS_C variable if there
-HOST_OS_C=$( echo $host_os | sed -e "s/-gnu//" )
+HOST_OS_C=$( echo $host_os | sed -E "s/(.*)-(.*)/\1/" | sed -E "s/(.*)-(.*)/\2/" )
 
 AC_SUBST([HOST_TYPE])
 AC_SUBST([HOST_OS])
@@ -193,6 +193,8 @@ AC_CONFIG_FILES([Makefile
                  libopencore-amr/incarcerate
                  libogg/Makefile
                  libogg/incarcerate
+                 libopus/Makefile
+                 libopus/incarcerate
                  libvorbis/Makefile
                  libvorbis/incarcerate
                  libtheora/Makefile

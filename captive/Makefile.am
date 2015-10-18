@@ -31,7 +31,7 @@ SUBDIRS+= zlib
 
 SUBDIRS+= \
   libvpx openssl librtmp libvo-aacenc libopencore-amr \
-  libogg libspeex libvorbis libtheora libmp3lame
+  libogg libopus libspeex libvorbis libtheora libmp3lame
 
 if VS_ENABLE_GPL
 SUBDIRS+=libx264

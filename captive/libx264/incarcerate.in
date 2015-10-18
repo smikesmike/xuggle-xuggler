@@ -37,6 +37,8 @@ fi
 if test "x$YASM" = "x"; then
 # no assembly for us :(
   X264_OPTIONS="$X264_OPTIONS --disable-asm"
+else
+  AS="$YASM"
 fi
 
 # X264, despite claiming it, does not support in-tree builds,
@@ -63,7 +65,6 @@ CPPFLAGS="@CPPFLAGS@" \
 CXX="@CXX@" \
 CXXFLAGS="@CXXFLAGS@" \
 NM="@NM@" \
-AS="@AS@" \
 ASFLAGS="@ASFLAGS@" \
 STRIP="@STRIP@" \
 RANLIB="@RANLIB@" \

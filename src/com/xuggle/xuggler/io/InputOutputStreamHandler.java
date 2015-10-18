@@ -54,6 +54,7 @@ public class InputOutputStreamHandler implements IURLProtocolHandler
   public final static boolean CLOSE_STREAM_ON_CLOSE=true;
   
   private final InputStream mInputStream;
+  private long length = -1;
   private final OutputStream mOutputStream;
   private final boolean mCloseStreamOnClose;
   private Closeable mOpenStream = null;
@@ -104,6 +105,9 @@ public class InputOutputStreamHandler implements IURLProtocolHandler
     mInputStream = in;
     mOutputStream = out;
     mCloseStreamOnClose = closeStreamOnClose;
+    if (mInputStream instanceof ISizeable){
+      length = ((ISizeable)mInputStream).getLength();
+    }
   }
 
 
@@ -203,7 +207,35 @@ public class InputOutputStreamHandler implements IURLProtocolHandler
 
   public long seek(long offset, int whence)
   {
-    return -1;
+    if (mOpenStream == null || !(mOpenStream instanceof InputStream))
+      return -1;
+    try
+    {
+      InputStream stream = (InputStream) mOpenStream;
+      if (stream.markSupported()){
+          switch (whence){
+              case SEEK_CUR:
+                  return stream.skip(offset);
+              case SEEK_SET:
+                  stream.reset();
+                  return stream.skip(offset);
+              case SEEK_SIZE:
+                  return length;
+              case SEEK_END:
+                  return -1;//not supported
+              default:
+                  return -1;
+          }
+      }else{
+          return -1;
+      }
+    }
+    catch (IOException e)
+    {
+      log.error("Got IO exception reading from stream: {}; {}",
+          mOpenStream, e);
+      return -1;
+    }
   }
 
   /**
@@ -231,12 +263,12 @@ public class InputOutputStreamHandler implements IURLProtocolHandler
 
   /**
    * {@inheritDoc}
-   * Always true for this class. 
+   * 
    */
 
   public boolean isStreamed(String url, int flags)
   {
-    return true;
+    return length==-1 || (mInputStream != null ? !mInputStream.markSupported() : true);
   }
   /**
    * Returns the stream we'd input from if asked.

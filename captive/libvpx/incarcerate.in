@@ -49,6 +49,9 @@ if [ "@VS_CROSS_COMPILE@" = "1" -o "${HOST_TYPE}" = "Mac" ]; then
         *x86_64*|*amd64*)
         VPX_HOST=generic-gnu
         ;;
+        *arm*)
+        VPX_HOST=armv5te-android-gcc
+        ;;
         *)
         VPX_HOST=x86-linux-gcc
         ;;

@@ -270,17 +270,19 @@ StreamCoderX264Test :: testDecodingAndEncodingH264VideoWithBFrames()
   // ask the encoder to encode a NULL set of samples.  So, let's do that.
   retval = hw->coders[hw->first_output_audio_stream]->encodeAudio(opacket.value(), 0, 0);
   VS_TUT_ENSURE("Could not encode any audio", retval >= 0);
-  if (opacket->isComplete())
+  while (opacket->isComplete())
   {
     retval = hw->container->writePacket(opacket.value());
     VS_TUT_ENSURE("could not write packet", retval >= 0);
+    hw->coders[hw->first_output_audio_stream]->encodeAudio(opacket.value(), 0, 0);
   }
   retval = hw->coders[hw->first_output_video_stream]->encodeVideo(opacket.value(), 0, 0);
   VS_TUT_ENSURE("Could not encode any video", retval >= 0);
-  if (opacket->isComplete())
+  while (opacket->isComplete())
   {
     retval = hw->container->writePacket(opacket.value());
     VS_TUT_ENSURE("could not write packet", retval >= 0);
+    hw->coders[hw->first_output_video_stream]->encodeVideo(opacket.value(), 0, 0);
   }
 
   retval = hw->container->writeTrailer();

@@ -30,6 +30,7 @@
 #include <com/xuggle/xuggler/IProperty.h>
 #include <com/xuggle/xuggler/ICodec.h>
 #include <com/xuggle/xuggler/IStreamCoder.h>
+#include <com/xuggle/xuggler/config.h>
 
 using namespace VS_CPP_NAMESPACE;
 
@@ -64,12 +65,16 @@ PropertyTest :: testCreation()
   stack.setGlobalLevel(Logger::LEVEL_WARN, false);
   RefPointer<IStreamCoder> coder = IStreamCoder::make(IStreamCoder::ENCODING,
     ICodec::AV_CODEC_ID_H264);
+#ifdef VS_ENABLE_GPL
   int32_t numProperties = coder->getNumProperties();
   VS_TUT_ENSURE("", numProperties > 0);
   RefPointer <IProperty> property =  coder->getPropertyMetaData(0);
 //  VS_LOG_DEBUG("Name: %s", property->getName());
 //  VS_LOG_DEBUG("Description: %s", property->getHelp());
 //  VS_TUT_ENSURE("should exist", property);
+#else
+ VS_TUT_ENSURE("", coder.value() == NULL);
+#endif
 }
 
 void
@@ -77,10 +82,14 @@ PropertyTest :: testIteration()
 {
   LoggerStack stack;
   stack.setGlobalLevel(Logger::LEVEL_TRACE, false);
-
-  RefPointer<IStreamCoder> coder = IStreamCoder::make(IStreamCoder::ENCODING,
+  RefPointer<IStreamCoder> coder=NULL;
+#ifdef VS_ENABLE_GPL
+  coder = IStreamCoder::make(IStreamCoder::ENCODING,
     ICodec::AV_CODEC_ID_H264);
-
+#else
+  coder = IStreamCoder::make(IStreamCoder::ENCODING,
+    ICodec::AV_CODEC_ID_FLV1);
+#endif
   int32_t numProperties = coder->getNumProperties();
   VS_TUT_ENSURE("", numProperties > 0);
 
@@ -106,9 +115,14 @@ PropertyTest :: testSetMetaData()
 {
   LoggerStack stack;
   stack.setGlobalLevel(Logger::LEVEL_TRACE, false);
-
-  RefPointer<IStreamCoder> coder = IStreamCoder::make(IStreamCoder::ENCODING,
+  RefPointer<IStreamCoder> coder=NULL;
+#ifdef VS_ENABLE_GPL
+  coder = IStreamCoder::make(IStreamCoder::ENCODING,
     ICodec::AV_CODEC_ID_H264);
+#else
+  coder = IStreamCoder::make(IStreamCoder::ENCODING,
+    ICodec::AV_CODEC_ID_FLV1);
+#endif
   RefPointer<IMetaData> dict = IMetaData::make();
   RefPointer<IMetaData> unset = IMetaData::make();
   const char* realKey = "b";

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * depth.c: bit-depth conversion video filter
  *****************************************************************************
- * Copyright (C) 2010-2012 x264 project
+ * Copyright (C) 2010-2015 x264 project
  *
  * Authors: Oskar Arvidsson <oskar@irock.se>
  *
@@ -50,13 +50,20 @@ static int depth_filter_csp_is_supported( int csp )
            csp_mask == X264_CSP_YV16 ||
            csp_mask == X264_CSP_YV24 ||
            csp_mask == X264_CSP_NV12 ||
-           csp_mask == X264_CSP_NV16;
+           csp_mask == X264_CSP_NV21 ||
+           csp_mask == X264_CSP_NV16 ||
+           csp_mask == X264_CSP_BGR ||
+           csp_mask == X264_CSP_RGB ||
+           csp_mask == X264_CSP_BGRA;
 }
 
 static int csp_num_interleaved( int csp, int plane )
 {
     int csp_mask = csp & X264_CSP_MASK;
-    return ( (csp_mask == X264_CSP_NV12 || csp_mask == X264_CSP_NV16) && plane == 1 ) ? 2 : 1;
+    return (csp_mask == X264_CSP_NV12 || csp_mask == X264_CSP_NV21 || csp_mask == X264_CSP_NV16) && plane == 1 ? 2 :
+           csp_mask == X264_CSP_BGR || csp_mask == X264_CSP_RGB ? 3 :
+           csp_mask == X264_CSP_BGRA ? 4 :
+           1;
 }
 
 /* The dithering algorithm is based on Sierra-2-4A error diffusion. It has been
@@ -67,10 +74,10 @@ static int csp_num_interleaved( int csp, int plane )
 static void dither_plane_##pitch( pixel *dst, int dst_stride, uint16_t *src, int src_stride, \
                                   int width, int height, int16_t *errors ) \
 { \
-    const int lshift = 16-BIT_DEPTH; \
-    const int rshift = 16-BIT_DEPTH+2; \
-    const int half = 1 << (16-BIT_DEPTH+1); \
-    const int pixel_max = (1 << BIT_DEPTH)-1; \
+    const int lshift = 16-X264_BIT_DEPTH; \
+    const int rshift = 16-X264_BIT_DEPTH+2; \
+    const int half = 1 << (16-X264_BIT_DEPTH+1); \
+    const int pixel_max = (1 << X264_BIT_DEPTH)-1; \
     memset( errors, 0, (width+1) * sizeof(int16_t) ); \
     for( int y = 0; y < height; y++, src += src_stride, dst += dst_stride ) \
     { \
@@ -86,6 +93,8 @@ static void dither_plane_##pitch( pixel *dst, int dst_stride, uint16_t *src, int
 
 DITHER_PLANE( 1 )
 DITHER_PLANE( 2 )
+DITHER_PLANE( 3 )
+DITHER_PLANE( 4 )
 
 static void dither_image( cli_image_t *out, cli_image_t *img, int16_t *error_buf )
 {
@@ -100,14 +109,27 @@ static void dither_image( cli_image_t *out, cli_image_t *img, int16_t *error_buf
         dither_plane_##pitch( ((pixel*)out->plane[i])+off, out->stride[i]/sizeof(pixel), \
                 ((uint16_t*)img->plane[i])+off, img->stride[i]/2, width, height, error_buf )
 
-        if( num_interleaved == 1 )
+        if( num_interleaved == 4 )
         {
-            CALL_DITHER_PLANE( 1, 0 );
+            CALL_DITHER_PLANE( 4, 0 );
+            CALL_DITHER_PLANE( 4, 1 );
+            CALL_DITHER_PLANE( 4, 2 );
+            CALL_DITHER_PLANE( 4, 3 ); //we probably can skip this one
         }
-        else
+        else if( num_interleaved == 3 )
+        {
+            CALL_DITHER_PLANE( 3, 0 );
+            CALL_DITHER_PLANE( 3, 1 );
+            CALL_DITHER_PLANE( 3, 2 );
+        }
+        else if( num_interleaved == 2 )
         {
             CALL_DITHER_PLANE( 2, 0 );
             CALL_DITHER_PLANE( 2, 1 );
+        }
+        else //if( num_interleaved == 1 )
+        {
+            CALL_DITHER_PLANE( 1, 0 );
         }
     }
 }
@@ -115,7 +137,7 @@ static void dither_image( cli_image_t *out, cli_image_t *img, int16_t *error_buf
 static void scale_image( cli_image_t *output, cli_image_t *img )
 {
     int csp_mask = img->csp & X264_CSP_MASK;
-    const int shift = BIT_DEPTH - 8;
+    const int shift = X264_BIT_DEPTH - 8;
     for( int i = 0; i < img->planes; i++ )
     {
         uint8_t *src = img->plane[i];
@@ -195,7 +217,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info,
             ret = 1;
     }
 
-    FAIL_IF_ERROR( bit_depth != BIT_DEPTH, "this build supports only bit depth %d\n", BIT_DEPTH )
+    FAIL_IF_ERROR( bit_depth != X264_BIT_DEPTH, "this build supports only bit depth %d\n", X264_BIT_DEPTH )
     FAIL_IF_ERROR( ret, "unsupported bit depth conversion.\n" )
 
     /* only add the filter to the chain if it's needed */
