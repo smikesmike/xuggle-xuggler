@@ -76,6 +76,7 @@ typedef int     (* resample_flush_func)(struct SwrContext *c);
 typedef int     (* set_compensation_func)(struct ResampleContext *c, int sample_delta, int compensation_distance);
 typedef int64_t (* get_delay_func)(struct SwrContext *s, int64_t base);
 typedef int     (* invert_initial_buffer_func)(struct ResampleContext *c, AudioData *dst, const AudioData *src, int src_size, int *dst_idx, int *dst_count);
+typedef int64_t (* get_out_samples_func)(struct SwrContext *s, int in_samples);
 
 struct Resampler {
   resample_init_func            init;
@@ -85,6 +86,7 @@ struct Resampler {
   set_compensation_func         set_compensation;
   get_delay_func                get_delay;
   invert_initial_buffer_func    invert_initial_buffer;
+  get_out_samples_func          get_out_samples;
 };
 
 extern struct Resampler const swri_resampler;
@@ -156,6 +158,7 @@ struct SwrContext {
     int64_t outpts;                                 ///< output PTS
     int64_t firstpts;                               ///< first PTS
     int drop_output;                                ///< number of output samples to drop
+    double delayed_samples_fixup;                   ///< soxr 0.1.1: needed to fixup delayed_samples after flush has been called.
 
     struct AudioConvert *in_convert;                ///< input conversion context
     struct AudioConvert *out_convert;               ///< output conversion context
