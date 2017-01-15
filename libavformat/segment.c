@@ -33,6 +33,7 @@
 #include "internal.h"
 
 #include "libavutil/avassert.h"
+#include "libavutil/internal.h"
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
 #include "libavutil/avstring.h"
@@ -351,6 +352,7 @@ static int segment_end(AVFormatContext *s, int write_trailer, int is_last)
 
             /* append new element */
             memcpy(entry, &seg->cur_entry, sizeof(*entry));
+            entry->filename = av_strdup(entry->filename);
             if (!seg->segment_list_entries)
                 seg->segment_list_entries = seg->segment_list_entries_end = entry;
             else
@@ -784,7 +786,7 @@ static int seg_write_packet(AVFormatContext *s, AVPacket *pkt)
         }
     }
 
-    av_dlog(s, "packet stream:%d pts:%s pts_time:%s duration_time:%s is_key:%d frame:%d\n",
+    ff_dlog(s, "packet stream:%d pts:%s pts_time:%s duration_time:%s is_key:%d frame:%d\n",
             pkt->stream_index, av_ts2str(pkt->pts), av_ts2timestr(pkt->pts, &st->time_base),
             av_ts2timestr(pkt->duration, &st->time_base),
             pkt->flags & AV_PKT_FLAG_KEY,
@@ -870,7 +872,8 @@ static int seg_write_trailer(struct AVFormatContext *s)
     if (!seg->write_header_trailer) {
         if ((ret = segment_end(s, 0, 1)) < 0)
             goto fail;
-        open_null_ctx(&oc->pb);
+        if ((ret = open_null_ctx(&oc->pb)) < 0)
+            goto fail;
         ret = av_write_trailer(oc);
         close_null_ctxp(&oc->pb);
     } else {
@@ -884,6 +887,7 @@ fail:
     av_opt_free(seg);
     av_freep(&seg->times);
     av_freep(&seg->frames);
+    av_freep(&seg->cur_entry.filename);
 
     cur = seg->segment_list_entries;
     while (cur) {

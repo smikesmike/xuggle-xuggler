@@ -625,7 +625,7 @@ static int decode_slice(AVCodecContext *avctx, void *tdata)
 
     /* if V or alpha component size is negative that means that previous
        component sizes are too large */
-    if (v_data_size < 0 || a_data_size < 0 || hdr_size < 6) {
+    if (v_data_size < 0 || a_data_size < 0 || hdr_size < 6 || coff[3] > slice_data_size) {
         av_log(avctx, AV_LOG_ERROR, "invalid data size\n");
         return AVERROR_INVALIDDATA;
     }
@@ -780,5 +780,5 @@ AVCodec ff_prores_lgpl_decoder = {
     .init           = decode_init,
     .close          = decode_close,
     .decode         = decode_frame,
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_SLICE_THREADS,
+    .capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_SLICE_THREADS,
 };

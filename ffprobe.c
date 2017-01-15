@@ -2831,6 +2831,9 @@ static int opt_show_format_entry(void *optctx, const char *opt, const char *arg)
     char *buf = av_asprintf("format=%s", arg);
     int ret;
 
+    if (!buf)
+        return AVERROR(ENOMEM);
+
     av_log(NULL, AV_LOG_WARNING,
            "Option '%s' is deprecated, use '-show_entries format=%s' instead\n",
            opt, arg);
@@ -3138,6 +3141,8 @@ int main(int argc, char **argv)
     char *buf;
     char *w_name = NULL, *w_args = NULL;
     int ret, i;
+
+    init_dynload();
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     register_exit(ffprobe_cleanup);

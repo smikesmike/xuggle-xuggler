@@ -94,6 +94,9 @@ static av_cold int decode_init(AVCodecContext *avctx)
         int ret = ff_set_dimensions(avctx, 80 << 3, 25 << 4);
         if (ret < 0)
             return ret;
+    } else if (avctx->width % FONT_WIDTH || avctx->height % s->font_height) {
+        av_log(avctx, AV_LOG_ERROR, "Invalid dimensions %d %d\n", avctx->width, avctx->height);
+        return AVERROR(EINVAL);
     }
     return 0;
 }
@@ -478,5 +481,5 @@ AVCodec ff_ansi_decoder = {
     .init           = decode_init,
     .close          = decode_close,
     .decode         = decode_frame,
-    .capabilities   = CODEC_CAP_DR1,
+    .capabilities   = AV_CODEC_CAP_DR1,
 };

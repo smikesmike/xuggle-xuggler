@@ -12,7 +12,7 @@
 
 @chapter Synopsis
 
-ffmpeg [@var{global_options}] @{[@var{input_file_options}] -i @file{input_file}@} ... @{[@var{output_file_options}] @file{output_file}@} ...
+ffmpeg [@var{global_options}] @{[@var{input_file_options}] -i @file{input_url}@} ... @{[@var{output_file_options}] @file{output_url}@} ...
 
 @chapter Description
 @c man begin DESCRIPTION
@@ -24,10 +24,10 @@ rates and resize video on the fly with a high quality polyphase filter.
 @command{ffmpeg} reads from an arbitrary number of input "files" (which can be regular
 files, pipes, network streams, grabbing devices, etc.), specified by the
 @code{-i} option, and writes to an arbitrary number of output "files", which are
-specified by a plain output filename. Anything found on the command line which
-cannot be interpreted as an option is considered to be an output filename.
+specified by a plain output url. Anything found on the command line which
+cannot be interpreted as an option is considered to be an output url.
 
-Each input or output file can, in principle, contain any number of streams of
+Each input or output url can, in principle, contain any number of streams of
 different types (video/audio/subtitle/attachment/data). The allowed number and/or
 types of streams may be limited by the container format. Selecting which
 streams from which inputs will go into which output is either done automatically
@@ -243,8 +243,8 @@ Force input or output file format. The format is normally auto detected for inpu
 files and guessed from the file extension for output files, so this option is not
 needed in most cases.
 
-@item -i @var{filename} (@emph{input})
-input file name
+@item -i @var{url} (@emph{input})
+input file url
 
 @item -y (@emph{global})
 Overwrite output files without asking.
@@ -277,16 +277,18 @@ libx264, and the 138th audio, which will be encoded with libvorbis.
 When used as an input option (before @code{-i}), limit the @var{duration} of
 data read from the input file.
 
-When used as an output option (before an output filename), stop writing the
+When used as an output option (before an output url), stop writing the
 output after its duration reaches @var{duration}.
 
-@var{duration} may be a number in seconds, or in @code{hh:mm:ss[.xxx]} form.
+@var{duration} must be a time duration specification,
+see @ref{time duration syntax,,the Time duration section in the ffmpeg-utils(1) manual,ffmpeg-utils}.
 
 -to and -t are mutually exclusive and -t has priority.
 
 @item -to @var{position} (@emph{output})
 Stop writing the output at @var{position}.
-@var{position} may be a number in seconds, or in @code{hh:mm:ss[.xxx]} form.
+@var{position} must be a time duration specification,
+see @ref{time duration syntax,,the Time duration section in the ffmpeg-utils(1) manual,ffmpeg-utils}.
 
 -to and -t are mutually exclusive and -t has priority.
 
@@ -295,17 +297,23 @@ Set the file size limit, expressed in bytes.
 
 @item -ss @var{position} (@emph{input/output})
 When used as an input option (before @code{-i}), seeks in this input file to
-@var{position}. Note the in most formats it is not possible to seek exactly, so
-@command{ffmpeg} will seek to the closest seek point before @var{position}.
+@var{position}. Note that in most formats it is not possible to seek exactly,
+so @command{ffmpeg} will seek to the closest seek point before @var{position}.
 When transcoding and @option{-accurate_seek} is enabled (the default), this
 extra segment between the seek point and @var{position} will be decoded and
 discarded. When doing stream copy or when @option{-noaccurate_seek} is used, it
 will be preserved.
 
-When used as an output option (before an output filename), decodes but discards
+When used as an output option (before an output url), decodes but discards
 input until the timestamps reach @var{position}.
 
-@var{position} may be either in seconds or in @code{hh:mm:ss[.xxx]} form.
+@var{position} must be a time duration specification,
+see @ref{time duration syntax,,the Time duration section in the ffmpeg-utils(1) manual,ffmpeg-utils}.
+
+@item -sseof @var{position} (@emph{input/output})
+
+Like the @code{-ss} option but relative to the "end of file". That is negative
+values are earlier in the file, 0 is at EOF.
 
 @item -itsoffset @var{offset} (@emph{input})
 Set the input time offset.
@@ -320,7 +328,7 @@ the time duration specified in @var{offset}.
 @item -timestamp @var{date} (@emph{output})
 Set the recording timestamp in the container.
 
-@var{date} must be a time duration specification,
+@var{date} must be a date specification,
 see @ref{date syntax,,the Date section in the ffmpeg-utils(1) manual,ffmpeg-utils}.
 
 @item -metadata[:metadata_specifier] @var{key}=@var{value} (@emph{output,per-metadata})
@@ -690,6 +698,10 @@ is not specified, the value of the @var{DISPLAY} environment variable is used
 For DXVA2, this option should contain the number of the display adapter to use.
 If this option is not specified, the default adapter is used.
 @end table
+
+@item -hwaccels
+List all hardware acceleration methods supported in this build of ffmpeg.
+
 @end table
 
 @section Audio Options
@@ -1082,7 +1094,7 @@ may be reassigned to a different value.
 For example, to set the stream 0 PID to 33 and the stream 1 PID to 36 for
 an output mpegts file:
 @example
-ffmpeg -i infile -streamid 0:33 -streamid 1:36 out.ts
+ffmpeg -i inurl -streamid 0:33 -streamid 1:36 out.ts
 @end example
 
 @item -bsf[:@var{stream_specifier}] @var{bitstream_filters} (@emph{output,per-stream})
@@ -1298,47 +1310,6 @@ If no such file is found, then ffmpeg will search for a file named
 @var{arg}.avpreset in the same directories.
 
 @c man end OPTIONS
-
-@chapter Tips
-@c man begin TIPS
-
-@itemize
-@item
-For streaming at very low bitrates, use a low frame rate
-and a small GOP size. This is especially true for RealVideo where
-the Linux player does not seem to be very fast, so it can miss
-frames. An example is:
-
-@example
-ffmpeg -g 3 -r 3 -t 10 -b:v 50k -s qcif -f rv10 /tmp/b.rm
-@end example
-
-@item
-The parameter 'q' which is displayed while encoding is the current
-quantizer. The value 1 indicates that a very good quality could
-be achieved. The value 31 indicates the worst quality. If q=31 appears
-too often, it means that the encoder cannot compress enough to meet
-your bitrate. You must either increase the bitrate, decrease the
-frame rate or decrease the frame size.
-
-@item
-If your computer is not fast enough, you can speed up the
-compression at the expense of the compression ratio. You can use
-'-me zero' to speed up motion estimation, and '-g 0' to disable
-motion estimation completely (you have only I-frames, which means it
-is about as good as JPEG compression).
-
-@item
-To have very low audio bitrates, reduce the sampling frequency
-(down to 22050 Hz for MPEG audio, 22050 or 11025 for AC-3).
-
-@item
-To have a constant quality (but a variable bitrate), use the option
-'-qscale n' when 'n' is between 1 (excellent quality) and 31 (worst
-quality).
-
-@end itemize
-@c man end TIPS
 
 @chapter Examples
 @c man begin EXAMPLES
