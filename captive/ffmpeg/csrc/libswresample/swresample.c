@@ -257,7 +257,7 @@ av_cold int swr_init(struct SwrContext *s){
     if (s->out_sample_rate!=s->in_sample_rate || (s->flags & SWR_FLAG_RESAMPLE)){
         s->resample = s->resampler->init(s->resample, s->out_sample_rate, s->in_sample_rate, s->filter_size, s->phase_shift, s->linear_interp, s->cutoff, s->int_sample_fmt, s->filter_type, s->kaiser_beta, s->precision, s->cheby);
         if (!s->resample) {
-            av_log(s, AV_LOG_ERROR, "Failed to initilaize resampler\n");
+            av_log(s, AV_LOG_ERROR, "Failed to initialize resampler\n");
             return AVERROR(ENOMEM);
         }
     }else
@@ -389,7 +389,7 @@ int swri_realloc_audio(AudioData *a, int count){
     av_assert0(a->bps);
     av_assert0(a->ch_count);
 
-    a->data= av_mallocz(countb*a->ch_count);
+    a->data= av_mallocz_array(countb, a->ch_count);
     if(!a->data)
         return AVERROR(ENOMEM);
     for(i=0; i<a->ch_count; i++){
@@ -689,11 +689,15 @@ int attribute_align_arg swr_convert(struct SwrContext *s, uint8_t *out_arg[SWR_C
                                                     const uint8_t *in_arg [SWR_CH_MAX], int  in_count){
     AudioData * in= &s->in;
     AudioData *out= &s->out;
+    int av_unused max_output;
 
     if (!swr_is_initialized(s)) {
         av_log(s, AV_LOG_ERROR, "Context has not been initialized\n");
         return AVERROR(EINVAL);
     }
+#if defined(ASSERT_LEVEL) && ASSERT_LEVEL >1
+    max_output = swr_get_out_samples(s, in_count);
+#endif
 
     while(s->drop_output > 0){
         int ret;
@@ -736,6 +740,9 @@ int attribute_align_arg swr_convert(struct SwrContext *s, uint8_t *out_arg[SWR_C
         int ret = swr_convert_internal(s, out, out_count, in, in_count);
         if(ret>0 && !s->drop_output)
             s->outpts += ret * (int64_t)s->in_sample_rate;
+
+        av_assert2(max_output < 0 || ret < 0 || ret <= max_output);
+
         return ret;
     }else{
         AudioData tmp= *in;
@@ -787,6 +794,7 @@ int attribute_align_arg swr_convert(struct SwrContext *s, uint8_t *out_arg[SWR_C
         }
         if(ret2>0 && !s->drop_output)
             s->outpts += ret2 * (int64_t)s->in_sample_rate;
+        av_assert2(max_output < 0 || ret2 < 0 || ret2 <= max_output);
         return ret2;
     }
 }
@@ -836,6 +844,28 @@ int64_t swr_get_delay(struct SwrContext *s, int64_t base){
     }else{
         return (s->in_buffer_count*base + (s->in_sample_rate>>1))/ s->in_sample_rate;
     }
+}
+
+int swr_get_out_samples(struct SwrContext *s, int in_samples)
+{
+    int64_t out_samples;
+
+    if (in_samples < 0)
+        return AVERROR(EINVAL);
+
+    if (s->resampler && s->resample) {
+        if (!s->resampler->get_out_samples)
+            return AVERROR(ENOSYS);
+        out_samples = s->resampler->get_out_samples(s, in_samples);
+    } else {
+        out_samples = s->in_buffer_count + in_samples;
+        av_assert0(s->out_sample_rate == s->in_sample_rate);
+    }
+
+    if (out_samples > INT_MAX)
+        return AVERROR(EINVAL);
+
+    return out_samples;
 }
 
 int swr_set_compensation(struct SwrContext *s, int sample_delta, int compensation_distance){

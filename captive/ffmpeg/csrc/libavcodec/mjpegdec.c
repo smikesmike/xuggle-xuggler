@@ -38,9 +38,11 @@
 #include "copy_block.h"
 #include "idctdsp.h"
 #include "internal.h"
+#include "jpegtables.h"
 #include "mjpeg.h"
 #include "mjpegdec.h"
 #include "jpeglsdec.h"
+#include "put_bits.h"
 #include "tiff.h"
 #include "exif.h"
 #include "bytestream.h"
@@ -168,6 +170,11 @@ int ff_mjpeg_decode_dqt(MJpegDecodeContext *s)
 
     len = get_bits(&s->gb, 16) - 2;
 
+    if (8*len > get_bits_left(&s->gb)) {
+        av_log(s->avctx, AV_LOG_ERROR, "dqt: len %d is too large\n", len);
+        return AVERROR_INVALIDDATA;
+    }
+
     while (len >= 65) {
         int pr = get_bits(&s->gb, 4);
         if (pr > 1) {
@@ -203,6 +210,11 @@ int ff_mjpeg_decode_dht(MJpegDecodeContext *s)
     int ret = 0;
 
     len = get_bits(&s->gb, 16) - 2;
+
+    if (8*len > get_bits_left(&s->gb)) {
+        av_log(s->avctx, AV_LOG_ERROR, "dht: len %d is too large\n", len);
+        return AVERROR_INVALIDDATA;
+    }
 
     while (len > 0) {
         if (len < 17)
@@ -257,7 +269,8 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
     int v_count[MAX_COMPONENTS] = { 0 };
 
     s->cur_scan = 0;
-    s->upscale_h = s->upscale_v = 0;
+    memset(s->upscale_h, 0, sizeof(s->upscale_h));
+    memset(s->upscale_v, 0, sizeof(s->upscale_v));
 
     /* XXX: verify len field validity */
     len     = get_bits(&s->gb, 16);
@@ -415,8 +428,8 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
             js = (pix_fmt_id >> (16 + 4*(i&1))) & 0xF;
 
         if (is == 1 && js == 2) {
-            if (i & 1) s->upscale_h |= 1 << (j/2);
-            else       s->upscale_v |= 1 << (j/2);
+            if (i & 1) s->upscale_h[j/2] = 1;
+            else       s->upscale_v[j/2] = 1;
         }
     }
 
@@ -452,12 +465,12 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
     case 0x22111111:
         if (s->adobe_transform == 0 && s->bits <= 8) {
             s->avctx->pix_fmt = AV_PIX_FMT_GBRAP;
-            s->upscale_v |= 6;
-            s->upscale_h |= 6;
+            s->upscale_v[1] = s->upscale_v[2] = 1;
+            s->upscale_h[1] = s->upscale_h[2] = 1;
         } else if (s->adobe_transform == 2 && s->bits <= 8) {
             s->avctx->pix_fmt = AV_PIX_FMT_YUVA444P;
-            s->upscale_v |= 6;
-            s->upscale_h |= 6;
+            s->upscale_v[1] = s->upscale_v[2] = 1;
+            s->upscale_h[1] = s->upscale_h[2] = 1;
             s->avctx->color_range = s->cs_itu601 ? AVCOL_RANGE_MPEG : AVCOL_RANGE_JPEG;
         } else {
             if (s->bits <= 8) s->avctx->pix_fmt = AV_PIX_FMT_YUVA420P;
@@ -506,10 +519,10 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
             if (s->bits <= 8) s->avctx->pix_fmt = AV_PIX_FMT_GBRP;
             else
                 goto unk_pixfmt;
-            s->upscale_v |= 3;
+            s->upscale_v[0] = s->upscale_v[1] = 1;
         } else {
             if (pix_fmt_id == 0x14111100)
-                s->upscale_v |= 6;
+                s->upscale_v[1] = s->upscale_v[2] = 1;
             if (s->bits <= 8) s->avctx->pix_fmt = s->cs_itu601 ? AV_PIX_FMT_YUV440P : AV_PIX_FMT_YUVJ440P;
             else
                 goto unk_pixfmt;
@@ -521,12 +534,19 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
             if (s->bits <= 8) s->avctx->pix_fmt = AV_PIX_FMT_GBRP;
             else
                 goto unk_pixfmt;
-            s->upscale_h |= 3;
+            s->upscale_h[0] = s->upscale_h[1] = 1;
         } else {
             if (s->bits <= 8) s->avctx->pix_fmt = s->cs_itu601 ? AV_PIX_FMT_YUV422P : AV_PIX_FMT_YUVJ422P;
             else              s->avctx->pix_fmt = AV_PIX_FMT_YUV422P16;
             s->avctx->color_range = s->cs_itu601 ? AVCOL_RANGE_MPEG : AVCOL_RANGE_JPEG;
         }
+        break;
+    case 0x31111100:
+        if (s->bits > 8)
+            goto unk_pixfmt;
+        s->avctx->pix_fmt = s->cs_itu601 ? AV_PIX_FMT_YUV444P : AV_PIX_FMT_YUVJ444P;
+        s->avctx->color_range = s->cs_itu601 ? AVCOL_RANGE_MPEG : AVCOL_RANGE_JPEG;
+        s->upscale_h[1] = s->upscale_h[2] = 2;
         break;
     case 0x22121100:
     case 0x22111200:
@@ -544,11 +564,11 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
         if (pix_fmt_id == 0x42111100) {
             if (s->bits > 8)
                 goto unk_pixfmt;
-            s->upscale_h = 6;
+            s->upscale_h[1] = s->upscale_h[2] = 1;
         } else if (pix_fmt_id == 0x24111100) {
             if (s->bits > 8)
                 goto unk_pixfmt;
-            s->upscale_v = 6;
+            s->upscale_v[1] = s->upscale_v[2] = 1;
         }
         break;
     case 0x41111100:
@@ -560,15 +580,17 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
     default:
 unk_pixfmt:
         av_log(s->avctx, AV_LOG_ERROR, "Unhandled pixel format 0x%x bits:%d\n", pix_fmt_id, s->bits);
-        s->upscale_h = s->upscale_v = 0;
+        memset(s->upscale_h, 0, sizeof(s->upscale_h));
+        memset(s->upscale_v, 0, sizeof(s->upscale_v));
         return AVERROR_PATCHWELCOME;
     }
-    if ((s->upscale_h || s->upscale_v) && s->avctx->lowres) {
+    if ((AV_RB32(s->upscale_h) || AV_RB32(s->upscale_v)) && s->avctx->lowres) {
         av_log(s->avctx, AV_LOG_ERROR, "lowres not supported for weird subsampling\n");
         return AVERROR_PATCHWELCOME;
     }
     if (s->ls) {
-        s->upscale_h = s->upscale_v = 0;
+        memset(s->upscale_h, 0, sizeof(s->upscale_h));
+        memset(s->upscale_v, 0, sizeof(s->upscale_v));
         if (s->nb_components == 3) {
             s->avctx->pix_fmt = AV_PIX_FMT_RGB24;
         } else if (s->nb_components != 1) {
@@ -598,7 +620,7 @@ unk_pixfmt:
     for (i = 0; i < 4; i++)
         s->linesize[i] = s->picture_ptr->linesize[i] << s->interlaced;
 
-    av_dlog(s->avctx, "%d %d %d %d %d %d\n",
+    ff_dlog(s->avctx, "%d %d %d %d %d %d\n",
             s->width, s->height, s->linesize[0], s->linesize[1],
             s->interlaced, s->avctx->height);
 
@@ -1319,8 +1341,8 @@ static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
                             return AVERROR_INVALIDDATA;
                         }
                     }
-                    av_dlog(s->avctx, "mb: %d %d processed\n", mb_y, mb_x);
-                    av_dlog(s->avctx, "%d %d %d %d %d %d %d %d \n",
+                    ff_dlog(s->avctx, "mb: %d %d processed\n", mb_y, mb_x);
+                    ff_dlog(s->avctx, "%d %d %d %d %d %d %d %d \n",
                             mb_x, mb_y, x, y, c, s->bottom_field,
                             (v * mb_y + y) * 8, (h * mb_x + x) * 8);
                     if (++x == h) {
@@ -1342,7 +1364,11 @@ static int mjpeg_decode_scan_progressive_ac(MJpegDecodeContext *s, int ss,
     int mb_x, mb_y;
     int EOBRUN = 0;
     int c = s->comp_index[0];
+    uint8_t *data = s->picture_ptr->data[c];
+    int linesize  = s->linesize[c];
+    int last_scan = 0;
     int16_t *quant_matrix = s->quant_matrixes[s->quant_sindex[0]];
+    int bytes_per_pixel = 1 + (s->bits > 8);
 
     av_assert0(ss>=0 && Ah>=0 && Al>=0);
     if (se < ss || se > 63) {
@@ -1353,10 +1379,15 @@ static int mjpeg_decode_scan_progressive_ac(MJpegDecodeContext *s, int ss,
     // s->coefs_finished is a bitmask for coefficients coded
     // ss and se are parameters telling start and end coefficients
     s->coefs_finished[c] |= (2ULL << se) - (1ULL << ss);
+    last_scan = !Al && !~s->coefs_finished[c];
+
+    if (s->interlaced && s->bottom_field)
+        data += linesize >> 1;
 
     s->restart_count = 0;
 
     for (mb_y = 0; mb_y < s->mb_height; mb_y++) {
+        uint8_t *ptr     = data + (mb_y * linesize * 8 >> s->avctx->lowres);
         int block_idx    = mb_y * s->block_stride[c];
         int16_t (*block)[64] = &s->blocks[c][block_idx];
         uint8_t *last_nnz    = &s->last_nnz[c][block_idx];
@@ -1377,46 +1408,17 @@ static int mjpeg_decode_scan_progressive_ac(MJpegDecodeContext *s, int ss,
                     return AVERROR_INVALIDDATA;
                 }
 
+            if (last_scan) {
+                    s->idsp.idct_put(ptr, linesize, *block);
+                    if (s->bits & 7)
+                        shift_output(s, ptr, linesize);
+                    ptr += bytes_per_pixel*8 >> s->avctx->lowres;
+            }
             if (handle_rstn(s, 0))
                 EOBRUN = 0;
         }
     }
     return 0;
-}
-
-static void mjpeg_idct_scan_progressive_ac(MJpegDecodeContext *s)
-{
-    int mb_x, mb_y;
-    int c;
-    const int bytes_per_pixel = 1 + (s->bits > 8);
-    const int block_size = s->lossless ? 1 : 8;
-
-    for (c = 0; c < s->nb_components; c++) {
-        uint8_t *data = s->picture_ptr->data[c];
-        int linesize  = s->linesize[c];
-        int h = s->h_max / s->h_count[c];
-        int v = s->v_max / s->v_count[c];
-        int mb_width     = (s->width  + h * block_size - 1) / (h * block_size);
-        int mb_height    = (s->height + v * block_size - 1) / (v * block_size);
-
-        if (~s->coefs_finished[c])
-            av_log(s->avctx, AV_LOG_WARNING, "component %d is incomplete\n", c);
-
-        if (s->interlaced && s->bottom_field)
-            data += linesize >> 1;
-
-        for (mb_y = 0; mb_y < mb_height; mb_y++) {
-            uint8_t *ptr     = data + (mb_y * linesize * 8 >> s->avctx->lowres);
-            int block_idx    = mb_y * s->block_stride[c];
-            int16_t (*block)[64] = &s->blocks[c][block_idx];
-            for (mb_x = 0; mb_x < mb_width; mb_x++, block++) {
-                s->idsp.idct_put(ptr, linesize, *block);
-                if (s->bits & 7)
-                    shift_output(s, ptr, linesize);
-                ptr += bytes_per_pixel*8 >> s->avctx->lowres;
-            }
-        }
-    }
 }
 
 int ff_mjpeg_decode_sos(MJpegDecodeContext *s, const uint8_t *mb_bitmask,
@@ -1886,7 +1888,7 @@ static int find_marker(const uint8_t **pbuf_ptr, const uint8_t *buf_end)
     buf_ptr = buf_end;
     val = -1;
 found:
-    av_dlog(NULL, "find_marker skipped %d bytes\n", skipped);
+    ff_dlog(NULL, "find_marker skipped %d bytes\n", skipped);
     *pbuf_ptr = buf_ptr;
     return val;
 }
@@ -2101,8 +2103,6 @@ int ff_mjpeg_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
             break;
         case EOI:
 eoi_parser:
-            if (avctx->skip_frame != AVDISCARD_ALL && s->progressive && s->cur_scan && s->got_picture)
-                mjpeg_idct_scan_progressive_ac(s);
             s->cur_scan = 0;
             if (!s->got_picture) {
                 av_log(avctx, AV_LOG_WARNING,
@@ -2179,7 +2179,7 @@ the_end:
 
     is16bit = av_pix_fmt_desc_get(s->avctx->pix_fmt)->comp[0].step_minus1;
 
-    if (s->upscale_h) {
+    if (AV_RB32(s->upscale_h)) {
         int p;
         av_assert0(avctx->pix_fmt == AV_PIX_FMT_YUVJ444P ||
                    avctx->pix_fmt == AV_PIX_FMT_YUV444P  ||
@@ -2199,29 +2199,44 @@ the_end:
             uint8_t *line = s->picture_ptr->data[p];
             int w = s->width;
             int h = s->height;
-            if (!(s->upscale_h & (1<<p)))
+            if (!s->upscale_h[p])
                 continue;
             if (p==1 || p==2) {
                 w = FF_CEIL_RSHIFT(w, hshift);
                 h = FF_CEIL_RSHIFT(h, vshift);
             }
-            if (s->upscale_v & (1<<p))
+            if (s->upscale_v[p])
                 h = (h+1)>>1;
             av_assert0(w > 0);
             for (i = 0; i < h; i++) {
-                if (is16bit) ((uint16_t*)line)[w - 1] = ((uint16_t*)line)[(w - 1) / 2];
-                else                      line[w - 1] = line[(w - 1) / 2];
-                for (index = w - 2; index > 0; index--) {
-                    if (is16bit)
-                        ((uint16_t*)line)[index] = (((uint16_t*)line)[index / 2] + ((uint16_t*)line)[(index + 1) / 2]) >> 1;
-                    else
-                        line[index] = (line[index / 2] + line[(index + 1) / 2]) >> 1;
+                if (s->upscale_h[p] == 1) {
+                    if (is16bit) ((uint16_t*)line)[w - 1] = ((uint16_t*)line)[(w - 1) / 2];
+                    else                      line[w - 1] = line[(w - 1) / 2];
+                    for (index = w - 2; index > 0; index--) {
+                        if (is16bit)
+                            ((uint16_t*)line)[index] = (((uint16_t*)line)[index / 2] + ((uint16_t*)line)[(index + 1) / 2]) >> 1;
+                        else
+                            line[index] = (line[index / 2] + line[(index + 1) / 2]) >> 1;
+                    }
+                } else if (s->upscale_h[p] == 2) {
+                    if (is16bit) {
+                        ((uint16_t*)line)[w - 1] = ((uint16_t*)line)[(w - 1) / 3];
+                        if (w > 1)
+                            ((uint16_t*)line)[w - 2] = ((uint16_t*)line)[w - 1];
+                    } else {
+                        line[w - 1] = line[(w - 1) / 3];
+                        if (w > 1)
+                            line[w - 2] = line[w - 1];
+                    }
+                    for (index = w - 3; index > 0; index--) {
+                        line[index] = (line[index / 3] + line[(index + 1) / 3] + line[(index + 2) / 3] + 1) / 3;
+                    }
                 }
                 line += s->linesize[p];
             }
         }
     }
-    if (s->upscale_v) {
+    if (AV_RB32(s->upscale_v)) {
         int p;
         av_assert0(avctx->pix_fmt == AV_PIX_FMT_YUVJ444P ||
                    avctx->pix_fmt == AV_PIX_FMT_YUV444P  ||
@@ -2242,7 +2257,7 @@ the_end:
             uint8_t *dst;
             int w = s->width;
             int h = s->height;
-            if (!(s->upscale_v & (1<<p)))
+            if (!s->upscale_v[p])
                 continue;
             if (p==1 || p==2) {
                 w = FF_CEIL_RSHIFT(w, hshift);
@@ -2414,6 +2429,7 @@ AVCodec ff_mjpeg_decoder = {
     .capabilities   = CODEC_CAP_DR1,
     .max_lowres     = 3,
     .priv_class     = &mjpegdec_class,
+    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };
 #endif
 #if CONFIG_THP_DECODER
@@ -2429,5 +2445,6 @@ AVCodec ff_thp_decoder = {
     .flush          = decode_flush,
     .capabilities   = CODEC_CAP_DR1,
     .max_lowres     = 3,
+    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };
 #endif

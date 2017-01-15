@@ -80,7 +80,7 @@ static inline int get_vlc_symbol(GetBitContext *gb, VlcState *const state,
     }
 
     v = get_sr_golomb(gb, k, 12, bits);
-    av_dlog(NULL, "v:%d bias:%d error:%d drift:%d count:%d k:%d",
+    ff_dlog(NULL, "v:%d bias:%d error:%d drift:%d count:%d k:%d",
             v, state->bias, state->error_sum, state->drift, state->count, k);
 
 #if 0 // JPEG LS
@@ -168,15 +168,14 @@ static av_always_inline void decode_line(FFV1Context *s, int w,
             } else
                 diff = get_vlc_symbol(&s->gb, &p->vlc_state[context], bits);
 
-            av_dlog(s->avctx, "count:%d index:%d, mode:%d, x:%d pos:%d\n",
+            ff_dlog(s->avctx, "count:%d index:%d, mode:%d, x:%d pos:%d\n",
                     run_count, run_index, run_mode, x, get_bits_count(&s->gb));
         }
 
         if (sign)
             diff = -diff;
 
-        sample[1][x] = (predict(sample[1] + x, sample[0] + x) + diff) &
-                       ((1 << bits) - 1);
+        sample[1][x] = av_mod_uintp2(predict(sample[1] + x, sample[0] + x) + diff, bits);
     }
     s->run_index = run_index;
 }
@@ -446,7 +445,7 @@ static int decode_slice(AVCodecContext *c, void *arg)
             decode_plane(fs, p->data[2] + ps*cx+cy*p->linesize[2], chroma_width, chroma_height, p->linesize[2], 1);
         }
         if (fs->transparency)
-            decode_plane(fs, p->data[3] + ps*x + y*p->linesize[3], width, height, p->linesize[3], 2);
+            decode_plane(fs, p->data[3] + ps*x + y*p->linesize[3], width, height, p->linesize[3], (f->version >= 4 && !f->chroma_planes) ? 1 : 2);
     } else {
         uint8_t *planes[3] = { p->data[0] + ps * x + y * p->linesize[0],
                                p->data[1] + ps * x + y * p->linesize[1],
@@ -481,7 +480,7 @@ static int read_quant_table(RangeCoder *c, int16_t *quant_table, int scale)
     for (v = 0; i < 128; v++) {
         unsigned len = get_symbol(c, state, 0) + 1;
 
-        if (len > 128 - i)
+        if (len > 128 - i || !len)
             return AVERROR_INVALIDDATA;
 
         while (len--) {
@@ -536,6 +535,8 @@ static int read_extra_header(FFV1Context *f)
     if (f->version > 2) {
         c->bytestream_end -= 4;
         f->micro_version = get_symbol(c, state, 0);
+        if (f->micro_version < 0)
+            return AVERROR_INVALIDDATA;
     }
     f->ac = f->avctx->coder_type = get_symbol(c, state, 0);
     if (f->ac > 1) {
@@ -654,6 +655,8 @@ static int read_header(FFV1Context *f)
         chroma_h_shift      = get_symbol(c, state, 0);
         chroma_v_shift      = get_symbol(c, state, 0);
         transparency        = get_rac(c, state);
+        if (colorspace == 0 && f->avctx->skip_alpha)
+            transparency = 0;
 
         if (f->plane_count) {
             if (colorspace          != f->colorspace                 ||
@@ -684,7 +687,6 @@ static int read_header(FFV1Context *f)
     }
 
     if (f->colorspace == 0) {
-        if (f->avctx->skip_alpha) f->transparency = 0;
         if (!f->transparency && !f->chroma_planes) {
             if (f->avctx->bits_per_raw_sample <= 8)
                 f->avctx->pix_fmt = AV_PIX_FMT_GRAY8;
@@ -772,7 +774,7 @@ static int read_header(FFV1Context *f)
         return AVERROR(ENOSYS);
     }
 
-    av_dlog(f->avctx, "%d %d %d\n",
+    ff_dlog(f->avctx, "%d %d %d\n",
             f->chroma_h_shift, f->chroma_v_shift, f->avctx->pix_fmt);
     if (f->version < 2) {
         context_count = read_quant_tables(c, f->quant_table);

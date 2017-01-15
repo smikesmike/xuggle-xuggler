@@ -1981,7 +1981,9 @@ static void RENAME(deinterleaveBytes)(const uint8_t *src, uint8_t *dst1, uint8_t
         dst2 += dst2Stride;
     }
     __asm__(
+#if !COMPILE_TEMPLATE_SSE2
             EMMS"       \n\t"
+#endif
             SFENCE"     \n\t"
             ::: "memory"
             );
