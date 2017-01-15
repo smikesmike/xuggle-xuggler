@@ -242,11 +242,11 @@ static int alloc_picture(H264Context *h, H264Picture *pic)
         av_pix_fmt_get_chroma_sub_sample(pic->f.format,
                                          &h_chroma_shift, &v_chroma_shift);
 
-        for(i=0; i<FF_CEIL_RSHIFT(h->avctx->height, v_chroma_shift); i++) {
+        for(i=0; i<FF_CEIL_RSHIFT(pic->f.height, v_chroma_shift); i++) {
             memset(pic->f.data[1] + pic->f.linesize[1]*i,
-                   0x80, FF_CEIL_RSHIFT(h->avctx->width, h_chroma_shift));
+                   0x80, FF_CEIL_RSHIFT(pic->f.width, h_chroma_shift));
             memset(pic->f.data[2] + pic->f.linesize[2]*i,
-                   0x80, FF_CEIL_RSHIFT(h->avctx->width, h_chroma_shift));
+                   0x80, FF_CEIL_RSHIFT(pic->f.width, h_chroma_shift));
         }
     }
 
@@ -893,7 +893,7 @@ static void implicit_weight_table(H264Context *h, int field)
             cur_poc = h->cur_pic_ptr->field_poc[h->picture_structure - 1];
         }
         if (h->ref_count[0] == 1 && h->ref_count[1] == 1 && !FRAME_MBAFF(h) &&
-            h->ref_list[0][0].poc + h->ref_list[1][0].poc == 2 * cur_poc) {
+            h->ref_list[0][0].poc + (int64_t)h->ref_list[1][0].poc == 2 * cur_poc) {
             h->use_weight        = 0;
             h->use_weight_chroma = 0;
             return;
@@ -914,7 +914,7 @@ static void implicit_weight_table(H264Context *h, int field)
     h->chroma_log2_weight_denom = 5;
 
     for (ref0 = ref_start; ref0 < ref_count0; ref0++) {
-        int poc0 = h->ref_list[0][ref0].poc;
+        int64_t poc0 = h->ref_list[0][ref0].poc;
         for (ref1 = ref_start; ref1 < ref_count1; ref1++) {
             int w = 32;
             if (!h->ref_list[0][ref0].long_ref && !h->ref_list[1][ref1].long_ref) {
@@ -1194,6 +1194,7 @@ static int h264_slice_header_init(H264Context *h, int reinit)
         nb_slices = max_slices;
     }
     h->slice_context_count = nb_slices;
+    h->max_contexts = FFMIN(h->max_contexts, nb_slices);
 
     if (!HAVE_THREADS || !(h->avctx->active_thread_type & FF_THREAD_SLICE)) {
         ret = ff_h264_context_init(h);
@@ -1454,6 +1455,7 @@ int ff_h264_decode_slice_header(H264Context *h, H264Context *h0)
 
     if (h->context_initialized &&
         (must_reinit || needs_reinit)) {
+        h->context_initialized = 0;
         if (h != h0) {
             av_log(h->avctx, AV_LOG_ERROR,
                    "changing width %d -> %d / height %d -> %d on "
@@ -1668,14 +1670,17 @@ int ff_h264_decode_slice_header(H264Context *h, H264Context *h0)
              * vectors.  Given we are concealing a lost frame, this probably
              * is not noticeable by comparison, but it should be fixed. */
             if (h->short_ref_count) {
-                if (prev) {
+                if (prev &&
+                    h->short_ref[0]->f.width == prev->f.width &&
+                    h->short_ref[0]->f.height == prev->f.height &&
+                    h->short_ref[0]->f.format == prev->f.format) {
                     av_image_copy(h->short_ref[0]->f.data,
                                   h->short_ref[0]->f.linesize,
                                   (const uint8_t **)prev->f.data,
                                   prev->f.linesize,
-                                  h->avctx->pix_fmt,
-                                  h->mb_width  * 16,
-                                  h->mb_height * 16);
+                                  prev->f.format,
+                                  prev->f.width,
+                                  prev->f.height);
                     h->short_ref[0]->poc = prev->poc + 2;
                 }
                 h->short_ref[0]->frame_num = h->prev_frame_num;
@@ -2417,13 +2422,16 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
     }
 
     if (h->pps.cabac) {
+        int ret;
         /* realign */
         align_get_bits(&h->gb);
 
         /* init cabac */
-        ff_init_cabac_decoder(&h->cabac,
+        ret = ff_init_cabac_decoder(&h->cabac,
                               h->gb.buffer + get_bits_count(&h->gb) / 8,
                               (get_bits_left(&h->gb) + 7) / 8);
+        if (ret < 0)
+            return ret;
 
         ff_h264_init_cabac_states(h);
 

@@ -424,10 +424,12 @@ void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height,
 
     *width  = FFALIGN(*width, w_align);
     *height = FFALIGN(*height, h_align);
-    if (s->codec_id == AV_CODEC_ID_H264 || s->lowres)
+    if (s->codec_id == AV_CODEC_ID_H264 || s->lowres) {
         // some of the optimized chroma MC reads one line too much
         // which is also done in mpeg decoders with lowres > 0
         *height += 2;
+        *width = FFMAX(*width, 32);
+    }
 
     for (i = 0; i < 4; i++)
         linesize_align[i] = STRIDE_ALIGN;
@@ -1030,8 +1032,10 @@ end:
 int ff_get_buffer(AVCodecContext *avctx, AVFrame *frame, int flags)
 {
     int ret = get_buffer_internal(avctx, frame, flags);
-    if (ret < 0)
+    if (ret < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
+        frame->width = frame->height = 0;
+    }
     return ret;
 }
 
@@ -3090,8 +3094,8 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
 
             if (enc->sample_aspect_ratio.num) {
                 av_reduce(&display_aspect_ratio.num, &display_aspect_ratio.den,
-                          enc->width * enc->sample_aspect_ratio.num,
-                          enc->height * enc->sample_aspect_ratio.den,
+                          enc->width * (int64_t)enc->sample_aspect_ratio.num,
+                          enc->height * (int64_t)enc->sample_aspect_ratio.den,
                           1024 * 1024);
                 snprintf(buf + strlen(buf), buf_size - strlen(buf),
                          " [SAR %d:%d DAR %d:%d]",
@@ -3393,7 +3397,7 @@ int av_get_audio_frame_duration(AVCodecContext *avctx, int frame_bytes)
                 return frame_bytes * 8 / bps;
         }
 
-        if (ch > 0) {
+        if (ch > 0 && ch < INT_MAX/16) {
             /* calc from frame_bytes and channels */
             switch (id) {
             case AV_CODEC_ID_ADPCM_AFC:
