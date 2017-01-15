@@ -1874,9 +1874,10 @@ static int mxf_write_header(AVFormatContext *s)
                 return ret;
             sc->video_bit_rate = st->codec->bit_rate ? st->codec->bit_rate : st->codec->rc_max_rate;
             if (s->oformat == &ff_mxf_d10_muxer) {
-                if (sc->video_bit_rate == 50000000) {
-                    if (mxf->time_base.den == 25) sc->index = 3;
-                    else                          sc->index = 5;
+                if ((sc->video_bit_rate == 50000000) && (mxf->time_base.den == 25)) {
+                    sc->index = 3;
+                } else if ((sc->video_bit_rate == 49999840 || sc->video_bit_rate == 50000000) && (mxf->time_base.den != 25)) {
+                    sc->index = 5;
                 } else if (sc->video_bit_rate == 40000000) {
                     if (mxf->time_base.den == 25) sc->index = 7;
                     else                          sc->index = 9;
@@ -2210,6 +2211,10 @@ static int mxf_write_packet(AVFormatContext *s, AVPacket *pkt)
         }
         mxf->edit_units_count++;
     } else if (!mxf->edit_unit_byte_count && st->index == 1) {
+        if (!mxf->edit_units_count) {
+            av_log(s, AV_LOG_ERROR, "No packets in first stream\n");
+            return AVERROR_PATCHWELCOME;
+        }
         mxf->index_entries[mxf->edit_units_count-1].slice_offset =
             mxf->body_offset - mxf->index_entries[mxf->edit_units_count-1].offset;
     }

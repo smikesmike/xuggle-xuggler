@@ -2919,6 +2919,11 @@ static int aac_decode_er_frame(AVCodecContext *avctx, void *data,
 
     spectral_to_sample(ac);
 
+    if (!ac->frame->data[0] && samples) {
+        av_log(avctx, AV_LOG_ERROR, "no frame data found\n");
+        return AVERROR_INVALIDDATA;
+    }
+
     ac->frame->nb_samples = samples;
     ac->frame->sample_rate = avctx->sample_rate;
     *got_frame_ptr = 1;
@@ -3148,7 +3153,7 @@ static int aac_decode_frame(AVCodecContext *avctx, void *data,
     if (INT_MAX / 8 <= buf_size)
         return AVERROR_INVALIDDATA;
 
-    if ((err = init_get_bits(&gb, buf, buf_size * 8)) < 0)
+    if ((err = init_get_bits8(&gb, buf, buf_size)) < 0)
         return err;
 
     switch (ac->oc[1].m4ac.object_type) {

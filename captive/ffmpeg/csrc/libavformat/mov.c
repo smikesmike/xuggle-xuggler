@@ -739,7 +739,7 @@ static int mov_read_wfex(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         return 0;
     st = c->fc->streams[c->fc->nb_streams-1];
 
-    if ((ret = ff_get_wav_header(pb, st->codec, atom.size, 0)) < 0)
+    if ((ret = ff_get_wav_header(c->fc, pb, st->codec, atom.size, 0)) < 0)
         av_log(c->fc, AV_LOG_WARNING, "get_wav_header failed\n");
 
     return ret;
@@ -2297,7 +2297,7 @@ static int mov_read_ctts(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         av_dlog(c->fc, "count=%d, duration=%d\n",
                 count, duration);
 
-        if (FFABS(duration) > (1<<28) && i+2<entries) {
+        if (FFNABS(duration) < -(1<<28) && i+2<entries) {
             av_log(c->fc, AV_LOG_WARNING, "CTTS invalid\n");
             av_freep(&sc->ctts_data);
             sc->ctts_count = 0;
@@ -2701,13 +2701,23 @@ static int mov_read_trak(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
     if (sc->dref_id-1 < sc->drefs_count && sc->drefs[sc->dref_id-1].path) {
         MOVDref *dref = &sc->drefs[sc->dref_id - 1];
-        if (mov_open_dref(&sc->pb, c->fc->filename, dref, &c->fc->interrupt_callback,
-            c->use_absolute_path, c->fc) < 0)
-            av_log(c->fc, AV_LOG_ERROR,
-                   "stream %d, error opening alias: path='%s', dir='%s', "
-                   "filename='%s', volume='%s', nlvl_from=%d, nlvl_to=%d\n",
+        if (c->enable_drefs) {
+            if (mov_open_dref(&sc->pb, c->fc->filename, dref, &c->fc->interrupt_callback,
+                              c->use_absolute_path, c->fc) < 0)
+                av_log(c->fc, AV_LOG_ERROR,
+                       "stream %d, error opening alias: path='%s', dir='%s', "
+                       "filename='%s', volume='%s', nlvl_from=%d, nlvl_to=%d\n",
+                       st->index, dref->path, dref->dir, dref->filename,
+                       dref->volume, dref->nlvl_from, dref->nlvl_to);
+        } else {
+            av_log(c->fc, AV_LOG_WARNING,
+                   "Skipped opening external track: "
+                   "stream %d, alias: path='%s', dir='%s', "
+                   "filename='%s', volume='%s', nlvl_from=%d, nlvl_to=%d."
+                   "Set enable_drefs to allow this.\n",
                    st->index, dref->path, dref->dir, dref->filename,
                    dref->volume, dref->nlvl_from, dref->nlvl_to);
+        }
     } else {
         sc->pb = c->fc->pb;
         sc->pb_is_copied = 1;
@@ -3206,7 +3216,7 @@ static int mov_read_trun(MOVContext *c, AVIOContext *pb, MOVAtom atom)
                 }
                 av_log(c->fc, AV_LOG_DEBUG, "calculated into dts %"PRId64"\n", dts);
             } else {
-                dts = frag->time;
+                dts = frag->time - sc->time_offset;
                 av_log(c->fc, AV_LOG_DEBUG, "found frag time %"PRId64
                         ", using it for dts\n", dts);
             }
@@ -3303,6 +3313,7 @@ static int mov_read_cmov(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         goto free_and_return;
     if (ffio_init_context(&ctx, moov_data, moov_len, 0, NULL, NULL, NULL, NULL) != 0)
         goto free_and_return;
+    ctx.seekable = AVIO_SEEKABLE_NORMAL;
     atom.type = MKTAG('m','o','o','v');
     atom.size = moov_len;
     ret = mov_read_default(c, &ctx, atom);
@@ -3852,6 +3863,9 @@ static int mov_read_close(AVFormatContext *s)
         AVStream *st = s->streams[i];
         MOVStreamContext *sc = st->priv_data;
 
+        if (!sc)
+            continue;
+
         av_freep(&sc->ctts_data);
         for (j = 0; j < sc->drefs_count; j++) {
             av_freep(&sc->drefs[j].path);
@@ -4385,6 +4399,8 @@ static const AVOption mov_options[] = {
         AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, .flags = FLAGS },
     { "export_xmp", "Export full XMP metadata", OFFSET(export_xmp),
         AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, .flags = FLAGS },
+    { "enable_drefs", "Enable external track support.", OFFSET(enable_drefs), AV_OPT_TYPE_INT,
+        {.i64 = 0}, 0, 1, FLAGS },
     { NULL },
 };
 

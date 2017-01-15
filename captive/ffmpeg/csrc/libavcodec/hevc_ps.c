@@ -461,7 +461,8 @@ int ff_hevc_decode_nal_vps(HEVCContext *s)
     if (get_bits_left(gb) < 0) {
         av_log(s->avctx, AV_LOG_ERROR,
                "Overread VPS by %d bits\n", -get_bits_left(gb));
-        goto err;
+        if (s->vps_list[vps_id])
+            goto err;
     }
 
     av_buffer_unref(&s->vps_list[vps_id]);
@@ -761,6 +762,9 @@ int ff_hevc_decode_nal_sps(HEVCContext *s)
     }
 
     sps->chroma_format_idc = get_ue_golomb_long(gb);
+    if (sps->chroma_format_idc > 3U) {
+        return AVERROR_INVALIDDATA;
+    }
 
     if (sps->chroma_format_idc == 3)
         sps->separate_colour_plane_flag = get_bits1(gb);

@@ -1917,7 +1917,7 @@ static int mpeg_decode_slice(MpegEncContext *s, int mb_y,
                     (left && show_bits(&s->gb, FFMIN(left, 23)) && !is_d10) ||
                     ((avctx->err_recognition & (AV_EF_BITSTREAM | AV_EF_AGGRESSIVE)) && left > 8)) {
                     av_log(avctx, AV_LOG_ERROR, "end mismatch left=%d %0X\n",
-                           left, show_bits(&s->gb, FFMIN(left, 23)));
+                           left, left>0 ? show_bits(&s->gb, FFMIN(left, 23)) : 0);
                     return AVERROR_INVALIDDATA;
                 } else
                     goto eos;
@@ -2142,8 +2142,6 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         av_log(avctx, AV_LOG_ERROR, "Marker in sequence header missing\n");
         return AVERROR_INVALIDDATA;
     }
-    s->width  = width;
-    s->height = height;
 
     s->avctx->rc_buffer_size = get_bits(&s->gb, 10) * 1024 * 16;
     skip_bits(&s->gb, 1);
@@ -2174,6 +2172,9 @@ static int mpeg1_decode_sequence(AVCodecContext *avctx,
         av_log(s->avctx, AV_LOG_ERROR, "sequence header damaged\n");
         return AVERROR_INVALIDDATA;
     }
+
+    s->width  = width;
+    s->height = height;
 
     /* We set MPEG-2 parameters so that it emulates MPEG-1. */
     s->progressive_sequence = 1;

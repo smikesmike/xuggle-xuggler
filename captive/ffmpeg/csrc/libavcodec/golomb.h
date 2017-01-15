@@ -68,7 +68,7 @@ static inline int get_ue_golomb(GetBitContext *gb)
         int log = 2 * av_log2(buf) - 31;
         LAST_SKIP_BITS(re, gb, 32 - log);
         CLOSE_READER(re, gb);
-        if (CONFIG_FTRAPV && log < 0) {
+        if (log < 7) {
             av_log(NULL, AV_LOG_ERROR, "Invalid UE golomb code\n");
             return AVERROR_INVALIDDATA;
         }
@@ -337,8 +337,16 @@ static inline int get_ur_golomb_jpegls(GetBitContext *gb, int k, int limit,
 
         if (i < limit - 1) {
             if (k) {
-                buf = SHOW_UBITS(re, gb, k);
-                LAST_SKIP_BITS(re, gb, k);
+                if (k > MIN_CACHE_BITS - 1) {
+                    buf = SHOW_UBITS(re, gb, 16) << (k-16);
+                    LAST_SKIP_BITS(re, gb, 16);
+                    UPDATE_CACHE(re, gb);
+                    buf |= SHOW_UBITS(re, gb, k-16);
+                    LAST_SKIP_BITS(re, gb, k-16);
+                } else {
+                    buf = SHOW_UBITS(re, gb, k);
+                    LAST_SKIP_BITS(re, gb, k);
+                }
             } else {
                 buf = 0;
             }

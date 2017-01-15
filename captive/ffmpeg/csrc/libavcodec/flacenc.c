@@ -663,7 +663,7 @@ static uint64_t calc_rice_params(RiceContext *rc, int pmin, int pmax,
     bits[pmin] = UINT32_MAX;
     for (i = pmax; ; ) {
         bits[i] = calc_optimal_rice_params(&tmp_rc, i, sums, n, pred_order);
-        if (bits[i] < bits[opt_porder]) {
+        if (bits[i] < bits[opt_porder] || pmax == pmin) {
             opt_porder = i;
             *rc = tmp_rc;
         }
@@ -920,7 +920,7 @@ static int count_frame_header(FlacEncodeContext *s)
         count += 16;
 
     /* explicit sample rate */
-    count += ((s->sr_code[0] == 12) + (s->sr_code[0] > 12)) * 8;
+    count += ((s->sr_code[0] == 12) + (s->sr_code[0] > 12) * 2) * 8;
 
     /* frame header CRC-8 */
     count += 8;
