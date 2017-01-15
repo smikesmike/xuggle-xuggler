@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# This script is here to update the branch to the latest version
+git subtree pull --prefix=captive/openssl/csrc --squash https://github.com/openssl/openssl.git OpenSSL_1_0_2c
+
