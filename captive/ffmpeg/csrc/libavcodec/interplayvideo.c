@@ -1012,10 +1012,13 @@ static int ipvideo_decode_frame(AVCodecContext *avctx,
         return ret;
 
     if (!s->is_16bpp) {
-        const uint8_t *pal = av_packet_get_side_data(avpkt, AV_PKT_DATA_PALETTE, NULL);
-        if (pal) {
+        int size;
+        const uint8_t *pal = av_packet_get_side_data(avpkt, AV_PKT_DATA_PALETTE, &size);
+        if (pal && size == AVPALETTE_SIZE) {
             frame->palette_has_changed = 1;
             memcpy(s->pal, pal, AVPALETTE_SIZE);
+        } else if (pal) {
+            av_log(avctx, AV_LOG_ERROR, "Palette size %d is wrong\n", size);
         }
     }
 
@@ -1052,5 +1055,5 @@ AVCodec ff_interplay_video_decoder = {
     .init           = ipvideo_decode_init,
     .close          = ipvideo_decode_end,
     .decode         = ipvideo_decode_frame,
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_PARAM_CHANGE,
+    .capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_PARAM_CHANGE,
 };

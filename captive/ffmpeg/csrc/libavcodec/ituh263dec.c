@@ -31,16 +31,19 @@
 #include <limits.h>
 
 #include "libavutil/attributes.h"
+#include "libavutil/imgutils.h"
 #include "libavutil/internal.h"
 #include "libavutil/mathematics.h"
 #include "avcodec.h"
 #include "mpegvideo.h"
 #include "h263.h"
+#include "h263data.h"
 #include "internal.h"
 #include "mathops.h"
 #include "mpegutils.h"
 #include "unary.h"
 #include "flv.h"
+#include "rv10.h"
 #include "mpeg4video.h"
 #include "mpegvideodata.h"
 
@@ -137,12 +140,12 @@ int ff_h263_decode_mba(MpegEncContext *s)
 {
     int i, mb_pos;
 
-    for(i=0; i<6; i++){
-        if(s->mb_num-1 <= ff_mba_max[i]) break;
-    }
-    mb_pos= get_bits(&s->gb, ff_mba_length[i]);
-    s->mb_x= mb_pos % s->mb_width;
-    s->mb_y= mb_pos / s->mb_width;
+    for (i = 0; i < 6; i++)
+        if (s->mb_num - 1 <= ff_mba_max[i])
+            break;
+    mb_pos  = get_bits(&s->gb, ff_mba_length[i]);
+    s->mb_x = mb_pos % s->mb_width;
+    s->mb_y = mb_pos / s->mb_width;
 
     return mb_pos;
 }
@@ -164,6 +167,7 @@ static int h263_decode_gob_header(MpegEncContext *s)
         /* We have a GBSC probably with GSTUFF */
     skip_bits(&s->gb, 16); /* Drop the zeros */
     left= get_bits_left(&s->gb);
+    left = FFMIN(left, 32);
     //MN: we must check the bits left or we might end in a infinite loop (or segfault)
     for(;left>13; left--){
         if(get_bits1(&s->gb)) break; /* Seek the '1' bit */
@@ -872,7 +876,7 @@ end:
 /* most is hardcoded. should extend to handle all h263 streams */
 int ff_h263_decode_picture_header(MpegEncContext *s)
 {
-    int format, width, height, i;
+    int format, width, height, i, ret;
     uint32_t startcode;
 
     align_get_bits(&s->gb);
@@ -1082,10 +1086,9 @@ int ff_h263_decode_picture_header(MpegEncContext *s)
         s->qscale = get_bits(&s->gb, 5);
     }
 
-    if (s->width == 0 || s->height == 0) {
-        av_log(s->avctx, AV_LOG_ERROR, "dimensions 0\n");
-        return -1;
-    }
+    if ((ret = av_image_check_size(s->width, s->height, 0, s)) < 0)
+        return ret;
+
     s->mb_width = (s->width  + 15) / 16;
     s->mb_height = (s->height  + 15) / 16;
     s->mb_num = s->mb_width * s->mb_height;

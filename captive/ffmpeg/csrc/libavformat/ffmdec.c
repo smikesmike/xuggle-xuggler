@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 
+#include "libavutil/internal.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/intfloat.h"
 #include "libavutil/opt.h"
@@ -154,7 +155,7 @@ static int ffm_read_data(AVFormatContext *s,
     return size1 - size;
 }
 
-/* ensure that acutal seeking happens between FFM_PACKET_SIZE
+/* ensure that actual seeking happens between FFM_PACKET_SIZE
    and file_size - FFM_PACKET_SIZE */
 static int64_t ffm_seek1(AVFormatContext *s, int64_t pos1)
 {
@@ -164,7 +165,7 @@ static int64_t ffm_seek1(AVFormatContext *s, int64_t pos1)
 
     pos = FFMIN(pos1, ffm->file_size - FFM_PACKET_SIZE);
     pos = FFMAX(pos, FFM_PACKET_SIZE);
-    av_dlog(s, "seek to %"PRIx64" -> %"PRIx64"\n", pos1, pos);
+    ff_dlog(s, "seek to %"PRIx64" -> %"PRIx64"\n", pos1, pos);
     return avio_seek(pb, pos, SEEK_SET);
 }
 
@@ -176,7 +177,7 @@ static int64_t get_dts(AVFormatContext *s, int64_t pos)
     ffm_seek1(s, pos);
     avio_skip(pb, 4);
     dts = avio_rb64(pb);
-    av_dlog(s, "dts=%0.6f\n", dts / 1000000.0);
+    ff_dlog(s, "dts=%0.6f\n", dts / 1000000.0);
     return dts;
 }
 
@@ -344,13 +345,13 @@ static int ffm2_read_header(AVFormatContext *s)
             codec->flags = avio_rb32(pb);
             codec->flags2 = avio_rb32(pb);
             codec->debug = avio_rb32(pb);
-            if (codec->flags & CODEC_FLAG_GLOBAL_HEADER) {
+            if (codec->flags & AV_CODEC_FLAG_GLOBAL_HEADER) {
                 if (ff_get_extradata(codec, pb, avio_rb32(pb)) < 0)
                     return AVERROR(ENOMEM);
             }
             break;
         case MKBETAG('S', 'T', 'V', 'I'):
-            if (f_stvi++) {
+            if (f_stvi++ || codec->codec_type != AVMEDIA_TYPE_VIDEO) {
                 ret = AVERROR(EINVAL);
                 goto fail;
             }
@@ -411,7 +412,7 @@ static int ffm2_read_header(AVFormatContext *s)
             codec->refs = avio_rb32(pb);
             break;
         case MKBETAG('S', 'T', 'A', 'U'):
-            if (f_stau++) {
+            if (f_stau++ || codec->codec_type != AVMEDIA_TYPE_AUDIO) {
                 ret = AVERROR(EINVAL);
                 goto fail;
             }
@@ -437,7 +438,7 @@ static int ffm2_read_header(AVFormatContext *s)
             }
             break;
         case MKBETAG('S', '2', 'V', 'I'):
-            if (f_stvi++ || !size) {
+            if (f_stvi++ || !size || codec->codec_type != AVMEDIA_TYPE_VIDEO) {
                 ret = AVERROR(EINVAL);
                 goto fail;
             }
@@ -452,7 +453,7 @@ static int ffm2_read_header(AVFormatContext *s)
                 goto fail;
             break;
         case MKBETAG('S', '2', 'A', 'U'):
-            if (f_stau++ || !size) {
+            if (f_stau++ || !size || codec->codec_type != AVMEDIA_TYPE_AUDIO) {
                 ret = AVERROR(EINVAL);
                 goto fail;
             }
@@ -615,7 +616,7 @@ static int ffm_read_header(AVFormatContext *s)
         default:
             goto fail;
         }
-        if (codec->flags & CODEC_FLAG_GLOBAL_HEADER) {
+        if (codec->flags & AV_CODEC_FLAG_GLOBAL_HEADER) {
             if (ff_get_extradata(codec, pb, avio_rb32(pb)) < 0)
                 return AVERROR(ENOMEM);
         }
@@ -650,7 +651,7 @@ static int ffm_read_packet(AVFormatContext *s, AVPacket *pkt)
         if ((ret = ffm_is_avail_data(s, FRAME_HEADER_SIZE+4)) < 0)
             return ret;
 
-        av_dlog(s, "pos=%08"PRIx64" spos=%"PRIx64", write_index=%"PRIx64" size=%"PRIx64"\n",
+        ff_dlog(s, "pos=%08"PRIx64" spos=%"PRIx64", write_index=%"PRIx64" size=%"PRIx64"\n",
                avio_tell(s->pb), s->pb->pos, ffm->write_index, ffm->file_size);
         if (ffm_read_data(s, ffm->header, FRAME_HEADER_SIZE, 1) !=
             FRAME_HEADER_SIZE)
@@ -708,7 +709,7 @@ static int ffm_seek(AVFormatContext *s, int stream_index, int64_t wanted_pts, in
     int64_t pts_min, pts_max, pts;
     double pos1;
 
-    av_dlog(s, "wanted_pts=%0.6f\n", wanted_pts / 1000000.0);
+    ff_dlog(s, "wanted_pts=%0.6f\n", wanted_pts / 1000000.0);
     /* find the position using linear interpolation (better than
        dichotomy in typical cases) */
     if (ffm->write_index && ffm->write_index < ffm->file_size) {

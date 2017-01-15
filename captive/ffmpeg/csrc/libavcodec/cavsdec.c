@@ -1218,6 +1218,8 @@ static int cavs_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                 h->got_keyframe = 1;
             }
         case PIC_PB_START_CODE:
+            if (*got_frame)
+                av_frame_unref(data);
             *got_frame = 0;
             if (!h->got_keyframe)
                 break;
@@ -1262,6 +1264,6 @@ AVCodec ff_cavs_decoder = {
     .init           = ff_cavs_init,
     .close          = ff_cavs_end,
     .decode         = cavs_decode_frame,
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_DELAY,
+    .capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_DELAY,
     .flush          = cavs_flush,
 };

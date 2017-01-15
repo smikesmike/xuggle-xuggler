@@ -429,8 +429,29 @@ break_loop:
 
     avio_seek(pb, data_ofs, SEEK_SET);
 
+    if (data_size > (INT64_MAX>>3)) {
+        av_log(s, AV_LOG_WARNING, "Data size %"PRId64" is too large\n", data_size);
+        data_size = 0;
+    }
+
+    if (   st->codec->bit_rate > 0 && data_size > 0
+        && st->codec->sample_rate > 0
+        && sample_count > 0 && st->codec->channels > 1
+        && sample_count % st->codec->channels == 0) {
+        if (fabs(8.0 * data_size * st->codec->channels * st->codec->sample_rate /
+            sample_count /st->codec->bit_rate - 1.0) < 0.3)
+            sample_count /= st->codec->channels;
+    }
+
     if (   data_size > 0 && sample_count && st->codec->channels
-        && data_size / sample_count / st->codec->channels > 8) {
+        && (data_size << 3) / sample_count / st->codec->channels > st->codec->bits_per_coded_sample  + 1) {
+        av_log(s, AV_LOG_WARNING, "ignoring wrong sample_count %"PRId64"\n", sample_count);
+        sample_count = 0;
+    }
+
+    /* G.729 hack (for Ticket4577)
+     * FIXME: Come up with cleaner, more general solution */
+    if (st->codec->codec_id == AV_CODEC_ID_G729 && sample_count && (data_size << 3) > sample_count) {
         av_log(s, AV_LOG_WARNING, "ignoring wrong sample_count %"PRId64"\n", sample_count);
         sample_count = 0;
     }

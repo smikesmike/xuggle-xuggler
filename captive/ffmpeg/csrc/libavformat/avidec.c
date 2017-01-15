@@ -344,14 +344,14 @@ static void avi_metadata_creation_time(AVDictionary **metadata, char *date)
 
 static void avi_read_nikon(AVFormatContext *s, uint64_t end)
 {
-    while (avio_tell(s->pb) < end) {
+    while (avio_tell(s->pb) < end && !avio_feof(s->pb)) {
         uint32_t tag  = avio_rl32(s->pb);
         uint32_t size = avio_rl32(s->pb);
         switch (tag) {
         case MKTAG('n', 'c', 't', 'g'):  /* Nikon Tags */
         {
             uint64_t tag_end = avio_tell(s->pb) + size;
-            while (avio_tell(s->pb) < tag_end) {
+            while (avio_tell(s->pb) < tag_end && !avio_feof(s->pb)) {
                 uint16_t tag     = avio_rl16(s->pb);
                 uint16_t size    = avio_rl16(s->pb);
                 const char *name = NULL;
@@ -823,7 +823,7 @@ static int avi_read_header(AVFormatContext *s)
                         st->codec->extradata_size += 9;
                         if ((ret = av_reallocp(&st->codec->extradata,
                                                st->codec->extradata_size +
-                                               FF_INPUT_BUFFER_PADDING_SIZE)) < 0) {
+                                               AV_INPUT_BUFFER_PADDING_SIZE)) < 0) {
                             st->codec->extradata_size = 0;
                             return ret;
                         } else
@@ -861,6 +861,9 @@ static int avi_read_header(AVFormatContext *s)
                     if (st->codec->codec_id == AV_CODEC_ID_AAC &&
                         st->codec->extradata_size)
                         st->need_parsing = AVSTREAM_PARSE_NONE;
+                    // The flac parser does not work with AVSTREAM_PARSE_TIMESTAMPS
+                    if (st->codec->codec_id == AV_CODEC_ID_FLAC)
+                        st->need_parsing = AVSTREAM_PARSE_NONE;
                     /* AVI files with Xan DPCM audio (wrongly) declare PCM
                      * audio in the header but have Axan as stream_code_tag. */
                     if (ast->handler == AV_RL32("Axan")) {
@@ -872,8 +875,9 @@ static int avi_read_header(AVFormatContext *s)
                         st->codec->codec_id    = AV_CODEC_ID_ADPCM_IMA_AMV;
                         ast->dshow_block_align = 0;
                     }
-                    if (st->codec->codec_id == AV_CODEC_ID_AAC && ast->dshow_block_align <= 4 && ast->dshow_block_align ||
-                        st->codec->codec_id == AV_CODEC_ID_MP2 && ast->dshow_block_align <= 4 && ast->dshow_block_align) {
+                    if ((st->codec->codec_id == AV_CODEC_ID_AAC  ||
+                         st->codec->codec_id == AV_CODEC_ID_FLAC ||
+                         st->codec->codec_id == AV_CODEC_ID_MP2 ) && ast->dshow_block_align <= 4 && ast->dshow_block_align) {
                         av_log(s, AV_LOG_DEBUG, "overriding invalid dshow_block_align of %d\n", ast->dshow_block_align);
                         ast->dshow_block_align = 0;
                     }
@@ -1086,6 +1090,8 @@ static int read_gab2_sub(AVFormatContext *s, AVStream *st, AVPacket *pkt)
             goto error;
 
         if (!avformat_open_input(&ast->sub_ctx, "", sub_demuxer, NULL)) {
+            if (ast->sub_ctx->nb_streams != 1)
+                goto error;
             ff_read_packet(ast->sub_ctx, &ast->sub_pkt);
             *st->codec = *ast->sub_ctx->streams[0]->codec;
             ast->sub_ctx->streams[0]->codec->extradata = NULL;
@@ -1682,9 +1688,15 @@ static int guess_ni_flag(AVFormatContext *s)
 
         if (n >= 2) {
             int64_t pos = st->index_entries[0].pos;
-            avio_seek(s->pb, pos + 4, SEEK_SET);
+            unsigned tag[2];
+            avio_seek(s->pb, pos, SEEK_SET);
+            tag[0] = avio_r8(s->pb);
+            tag[1] = avio_r8(s->pb);
+            avio_rl16(s->pb);
             size = avio_rl32(s->pb);
-            if (pos + size > st->index_entries[1].pos)
+            if (get_stream_idx(tag) == i && pos + size > st->index_entries[1].pos)
+                last_start = INT64_MAX;
+            if (get_stream_idx(tag) == i && size == st->index_entries[0].size + 8)
                 last_start = INT64_MAX;
         }
 
@@ -1834,7 +1846,6 @@ static int avi_read_seek(AVFormatContext *s, int stream_index,
             continue;
 
 //        av_assert1(st2->codec->block_align);
-        av_assert0(fabs(av_q2d(st2->time_base) - ast2->scale / (double)ast2->rate) < av_q2d(st2->time_base) * 0.00000001);
         index = av_index_search_timestamp(st2,
                                           av_rescale_q(timestamp,
                                                        st->time_base,

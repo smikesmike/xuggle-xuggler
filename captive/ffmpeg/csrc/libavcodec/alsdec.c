@@ -765,8 +765,13 @@ static int read_var_block_data(ALSDecContext *ctx, ALSBlockData *bd)
             bd->ltp_gain[0]   = decode_rice(gb, 1) << 3;
             bd->ltp_gain[1]   = decode_rice(gb, 2) << 3;
 
-            r                 = get_unary(gb, 0, 3);
+            r                 = get_unary(gb, 0, 4);
             c                 = get_bits(gb, 2);
+            if (r >= 4) {
+                av_log(avctx, AV_LOG_ERROR, "r overflow\n");
+                return AVERROR_INVALIDDATA;
+            }
+
             bd->ltp_gain[2]   = ltp_gain_values[r][c];
 
             bd->ltp_gain[3]   = decode_rice(gb, 2) << 3;
@@ -1853,5 +1858,5 @@ AVCodec ff_als_decoder = {
     .close          = decode_end,
     .decode         = decode_frame,
     .flush          = flush,
-    .capabilities   = CODEC_CAP_SUBFRAMES | CODEC_CAP_DR1,
+    .capabilities   = AV_CODEC_CAP_SUBFRAMES | AV_CODEC_CAP_DR1,
 };

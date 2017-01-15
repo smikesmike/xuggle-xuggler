@@ -21,6 +21,7 @@
 
 #include "avcodec.h"
 #include "ass.h"
+#include "libavutil/internal.h"
 #include "libavutil/opt.h"
 
 #define SCREEN_ROWS 15
@@ -167,7 +168,8 @@ typedef struct CCaptionSubContext {
     int64_t end_time;
     char prev_cmd[2];
     /* buffer to store pkt data */
-    AVBufferRef *pktbuf;
+    uint8_t *pktbuf;
+    int pktbuf_size;
 }CCaptionSubContext;
 
 
@@ -184,11 +186,7 @@ static av_cold int init_decoder(AVCodecContext *avctx)
     if(ret < 0) {
         return ret;
     }
-    /* allocate pkt buffer */
-    ctx->pktbuf = av_buffer_alloc(128);
-    if( !ctx->pktbuf) {
-        ret = AVERROR(ENOMEM);
-    }
+
     return ret;
 }
 
@@ -196,7 +194,8 @@ static av_cold int close_decoder(AVCodecContext *avctx)
 {
     CCaptionSubContext *ctx = avctx->priv_data;
     av_bprint_finalize( &ctx->buffer, NULL);
-    av_buffer_unref(&ctx->pktbuf);
+    av_freep(&ctx->pktbuf);
+    ctx->pktbuf_size = 0;
     return 0;
 }
 
@@ -451,9 +450,9 @@ static void handle_char(CCaptionSubContext *ctx, char hi, char lo, int64_t pts)
     ctx->prev_cmd[0] = 0;
     ctx->prev_cmd[1] = 0;
     if (lo)
-       av_dlog(ctx, "(%c,%c)\n",hi,lo);
+       ff_dlog(ctx, "(%c,%c)\n",hi,lo);
     else
-       av_dlog(ctx, "(%c)\n",hi);
+       ff_dlog(ctx, "(%c)\n",hi);
 }
 
 static int process_cc608(CCaptionSubContext *ctx, int64_t pts, uint8_t hi, uint8_t lo)
@@ -493,21 +492,21 @@ static int process_cc608(CCaptionSubContext *ctx, int64_t pts, uint8_t hi, uint8
         ret = handle_edm(ctx, pts);
     } else if ( COR3(hi, 0x14, 0x15, 0x1C) && lo == 0x2D ) {
     /* carriage return */
-        av_dlog(ctx, "carriage return\n");
+        ff_dlog(ctx, "carriage return\n");
         reap_screen(ctx, pts);
         roll_up(ctx);
         ctx->screen_changed = 1;
         ctx->cursor_column = 0;
     } else if ( COR3(hi, 0x14, 0x15, 0x1C) && lo == 0x2F ) {
     /* end of caption */
-        av_dlog(ctx, "handle_eoc\n");
+        ff_dlog(ctx, "handle_eoc\n");
         ret = handle_eoc(ctx, pts);
     } else if (hi>=0x20) {
     /* Standard characters (always in pairs) */
         handle_char(ctx, hi, lo, pts);
     } else {
     /* Ignoring all other non data code */
-        av_dlog(ctx, "Unknown command 0x%hhx 0x%hhx\n", hi, lo);
+        ff_dlog(ctx, "Unknown command 0x%hhx 0x%hhx\n", hi, lo);
     }
 
     /* set prev command */
@@ -528,16 +527,13 @@ static int decode(AVCodecContext *avctx, void *data, int *got_sub, AVPacket *avp
     int ret = 0;
     int i;
 
-    if ( ctx->pktbuf->size < len) {
-        ret = av_buffer_realloc(&ctx->pktbuf, len);
-         if(ret < 0) {
-            av_log(ctx, AV_LOG_WARNING, "Insufficient Memory of %d truncated to %d\n",len, ctx->pktbuf->size);
-            len = ctx->pktbuf->size;
-            ret = 0;
-        }
+    av_fast_padded_malloc(&ctx->pktbuf, &ctx->pktbuf_size, len);
+    if (!ctx->pktbuf) {
+        av_log(ctx, AV_LOG_WARNING, "Insufficient Memory of %d truncated to %d\n", len, ctx->pktbuf_size);
+        return AVERROR(ENOMEM);
     }
-    memcpy(ctx->pktbuf->data, avpkt->data, len);
-    bptr = ctx->pktbuf->data;
+    memcpy(ctx->pktbuf, avpkt->data, len);
+    bptr = ctx->pktbuf;
 
 
     for (i  = 0; i < len; i += 3) {
@@ -553,7 +549,7 @@ static int decode(AVCodecContext *avctx, void *data, int *got_sub, AVPacket *avp
         {
             int start_time = av_rescale_q(ctx->start_time, avctx->time_base, (AVRational){ 1, 100 });
             int end_time = av_rescale_q(ctx->end_time, avctx->time_base, (AVRational){ 1, 100 });
-            av_dlog(ctx, "cdp writing data (%s)\n",ctx->buffer.str);
+            ff_dlog(ctx, "cdp writing data (%s)\n",ctx->buffer.str);
             ret = ff_ass_add_rect_bprint(sub, &ctx->buffer, start_time, end_time - start_time);
             if (ret < 0)
                 return ret;

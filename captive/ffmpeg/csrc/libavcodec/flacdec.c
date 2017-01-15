@@ -268,7 +268,8 @@ static int decode_subframe_fixed(FLACContext *s, int32_t *decoded,
                                  int pred_order, int bps)
 {
     const int blocksize = s->blocksize;
-    int av_uninit(a), av_uninit(b), av_uninit(c), av_uninit(d), i;
+    unsigned av_uninit(a), av_uninit(b), av_uninit(c), av_uninit(d);
+    int i;
     int ret;
 
     /* warm up samples */
@@ -447,7 +448,7 @@ static inline int decode_subframe(FLACContext *s, int channel)
     if (wasted) {
         int i;
         for (i = 0; i < s->blocksize; i++)
-            decoded[i] <<= wasted;
+            decoded[i] = (unsigned)decoded[i] << wasted;
     }
 
     return 0;
@@ -665,7 +666,7 @@ AVCodec ff_flac_decoder = {
     .close          = flac_decode_close,
     .decode         = flac_decode_frame,
     .init_thread_copy = ONLY_IF_THREADS_ENABLED(init_thread_copy),
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_FRAME_THREADS,
+    .capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_FRAME_THREADS,
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_S16,
                                                       AV_SAMPLE_FMT_S16P,
                                                       AV_SAMPLE_FMT_S32,
