@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 2004-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 #
 # ====================================================================
 # Written by Andy Polyakov <appro@fy.chalmers.se> for the OpenSSL
@@ -52,7 +45,7 @@
 # the undertaken effort was that it appeared that in tight IA-32
 # register window little-endian flavor could achieve slightly higher
 # Instruction Level Parallelism, and it indeed resulted in up to 15%
-# better performance on most recent Âµ-archs...
+# better performance on most recent µ-archs...
 #
 # Third version adds AES_cbc_encrypt implementation, which resulted in
 # up to 40% performance imrovement of CBC benchmark results. 40% was
@@ -123,7 +116,7 @@
 # words every cache-line is *guaranteed* to be accessed within ~50
 # cycles window. Why just SSE? Because it's needed on hyper-threading
 # CPU! Which is also why it's prefetched with 64 byte stride. Best
-# part is that it has no negative effect on performance:-)
+# part is that it has no negative effect on performance:-)  
 #
 # Version 4.3 implements switch between compact and non-compact block
 # functions in AES_cbc_encrypt depending on how much data was asked
@@ -198,10 +191,6 @@ $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
 push(@INC,"${dir}","${dir}../../perlasm");
 require "x86asm.pl";
 
-$output = pop;
-open OUT,">$output";
-*STDOUT=*OUT;
-
 &asm_init($ARGV[0],"aes-586.pl",$x86only = $ARGV[$#ARGV] eq "386");
 &static_label("AES_Te");
 &static_label("AES_Td");
@@ -235,7 +224,7 @@ sub _data_word() { my $i; while(defined($i=shift)) { &data_word($i,$i); } }
 $speed_limit=512;	# chunks smaller than $speed_limit are
 			# processed with compact routine in CBC mode
 $small_footprint=1;	# $small_footprint=1 code is ~5% slower [on
-			# recent Âµ-archs], but ~5 times smaller!
+			# recent µ-archs], but ~5 times smaller!
 			# I favor compact code to minimize cache
 			# contention and in hope to "collect" 5% back
 			# in real-life applications...
@@ -576,7 +565,7 @@ sub enctransform()
 # Performance is not actually extraordinary in comparison to pure
 # x86 code. In particular encrypt performance is virtually the same.
 # Decrypt performance on the other hand is 15-20% better on newer
-# Âµ-archs [but we're thankful for *any* improvement here], and ~50%
+# µ-archs [but we're thankful for *any* improvement here], and ~50%
 # better on PIII:-) And additionally on the pros side this code
 # eliminates redundant references to stack and thus relieves/
 # minimizes the pressure on the memory bus.
@@ -585,7 +574,7 @@ sub enctransform()
 # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 # |          mm4          |          mm0          |
 # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-# |     s3    |     s2    |     s1    |     s0    |
+# |     s3    |     s2    |     s1    |     s0    |    
 # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 # |15|14|13|12|11|10| 9| 8| 7| 6| 5| 4| 3| 2| 1| 0|
 # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -805,7 +794,7 @@ sub encstep()
 
 	if ($i==3)  {	$tmp=$s[3]; &mov ($s[2],$__s1);		}##%ecx
 	elsif($i==2){	&movz	($tmp,&HB($s[3]));		}#%ebx[2]
-	else        {	&mov	($tmp,$s[3]);
+	else        {	&mov	($tmp,$s[3]); 
 			&shr	($tmp,24)			}
 			&xor	($out,&DWP(1,$te,$tmp,8));
 	if ($i<2)   {	&mov	(&DWP(4+4*$i,"esp"),$out);	}
@@ -1558,7 +1547,7 @@ sub sse_deccompact()
 		&pxor	("mm1","mm3");		&pxor	("mm5","mm7");	# tp4
 		&pshufw	("mm3","mm1",0xb1);	&pshufw	("mm7","mm5",0xb1);
 		&pxor	("mm0","mm1");		&pxor	("mm4","mm5");	# ^= tp4
-		&pxor	("mm0","mm3");		&pxor	("mm4","mm7");	# ^= ROTATE(tp4,16)
+		&pxor	("mm0","mm3");		&pxor	("mm4","mm7");	# ^= ROTATE(tp4,16)	
 
 		&pxor	("mm3","mm3");		&pxor	("mm7","mm7");
 		&pcmpgtb("mm3","mm1");		&pcmpgtb("mm7","mm5");
@@ -2028,7 +2017,7 @@ sub declast()
 {
 # stack frame layout
 #             -4(%esp)		# return address	 0(%esp)
-#              0(%esp)		# s0 backing store	 4(%esp)
+#              0(%esp)		# s0 backing store	 4(%esp)	
 #              4(%esp)		# s1 backing store	 8(%esp)
 #              8(%esp)		# s2 backing store	12(%esp)
 #             12(%esp)		# s3 backing store	16(%esp)
@@ -2738,7 +2727,7 @@ sub enckey()
 	&mov	(&DWP(80,"edi"),10);		# setup number of rounds
 	&xor	("eax","eax");
 	&jmp	(&label("exit"));
-
+		
     &set_label("12rounds");
 	&mov	("eax",&DWP(0,"esi"));		# copy first 6 dwords
 	&mov	("ebx",&DWP(4,"esi"));
@@ -2872,12 +2861,12 @@ sub enckey()
     &set_label("exit");
 &function_end("_x86_AES_set_encrypt_key");
 
-# int AES_set_encrypt_key(const unsigned char *userKey, const int bits,
+# int private_AES_set_encrypt_key(const unsigned char *userKey, const int bits,
 #                        AES_KEY *key)
-&function_begin_B("AES_set_encrypt_key");
+&function_begin_B("private_AES_set_encrypt_key");
 	&call	("_x86_AES_set_encrypt_key");
 	&ret	();
-&function_end_B("AES_set_encrypt_key");
+&function_end_B("private_AES_set_encrypt_key");
 
 sub deckey()
 { my ($i,$key,$tp1,$tp2,$tp4,$tp8) = @_;
@@ -2934,9 +2923,9 @@ sub deckey()
 	&mov	(&DWP(4*$i,$key),$tp1);
 }
 
-# int AES_set_decrypt_key(const unsigned char *userKey, const int bits,
+# int private_AES_set_decrypt_key(const unsigned char *userKey, const int bits,
 #                        AES_KEY *key)
-&function_begin_B("AES_set_decrypt_key");
+&function_begin_B("private_AES_set_decrypt_key");
 	&call	("_x86_AES_set_encrypt_key");
 	&cmp	("eax",0);
 	&je	(&label("proceed"));
@@ -2992,9 +2981,7 @@ sub deckey()
 	&jb	(&label("permute"));
 
 	&xor	("eax","eax");			# return success
-&function_end("AES_set_decrypt_key");
+&function_end("private_AES_set_decrypt_key");
 &asciz("AES for x86, CRYPTOGAMS by <appro\@openssl.org>");
 
 &asm_finish();
-
-close STDOUT;
