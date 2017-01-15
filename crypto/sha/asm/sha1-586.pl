@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 1998-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 
 # ====================================================================
 # [Re]written by Andy Polyakov <appro@openssl.org> for the OpenSSL
@@ -73,9 +66,9 @@
 # switch to AVX alone improves performance by as little as 4% in
 # comparison to SSSE3 code path. But below result doesn't look like
 # 4% improvement... Trouble is that Sandy Bridge decodes 'ro[rl]' as
-# pair of Âµ-ops, and it's the additional Âµ-ops, two per round, that
+# pair of µ-ops, and it's the additional µ-ops, two per round, that
 # make it run slower than Core2 and Westmere. But 'sh[rl]d' is decoded
-# as single Âµ-op by Sandy Bridge and it's replacing 'ro[rl]' with
+# as single µ-op by Sandy Bridge and it's replacing 'ro[rl]' with
 # equivalent 'sh[rl]d' that is responsible for the impressive 5.1
 # cycles per processed byte. But 'sh[rl]d' is not something that used
 # to be fast, nor does it appear to be fast in upcoming Bulldozer
@@ -104,12 +97,10 @@
 # Sandy Bridge	8.8		6.2/+40%	5.1(**)/+73%
 # Ivy Bridge	7.2		4.8/+51%	4.7(**)/+53%
 # Haswell	6.5		4.3/+51%	4.1(**)/+58%
-# Skylake	6.4		4.1/+55%	4.1(**)/+55%
 # Bulldozer	11.6		6.0/+92%
 # VIA Nano	10.6		7.5/+41%
 # Atom		12.5		9.3(*)/+35%
 # Silvermont	14.5		9.9(*)/+46%
-# Goldmont	8.8		6.7/+30%	1.7(***)/+415%
 #
 # (*)	Loop is 1056 instructions long and expected result is ~8.25.
 #	The discrepancy is because of front-end limitations, so
@@ -117,15 +108,10 @@
 #	limited parallelism.
 #
 # (**)	As per above comment, the result is for AVX *plus* sh[rl]d.
-#
-# (***)	SHAEXT result
 
 $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
 push(@INC,"${dir}","${dir}../../perlasm");
 require "x86asm.pl";
-
-$output=pop;
-open STDOUT,">$output";
 
 &asm_init($ARGV[0],"sha1-586.pl",$ARGV[$#ARGV] eq "386");
 
@@ -137,7 +123,7 @@ $ymm=1 if ($xmm &&
 			=~ /GNU assembler version ([2-9]\.[0-9]+)/ &&
 		$1>=2.19);	# first version supporting AVX
 
-$ymm=1 if ($xmm && !$ymm && $ARGV[0] eq "win32n" &&
+$ymm=1 if ($xmm && !$ymm && $ARGV[0] eq "win32n" && 
 		`nasm -v 2>&1` =~ /NASM version ([2-9]\.[0-9]+)/ &&
 		$1>=2.03);	# first version supporting AVX
 
@@ -1488,5 +1474,3 @@ sub Xtail_avx()
 &asciz("SHA1 block transform for x86, CRYPTOGAMS by <appro\@openssl.org>");
 
 &asm_finish();
-
-close STDOUT;

@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 2010-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 
 # ====================================================================
 # Written by Andy Polyakov <appro@openssl.org> for the OpenSSL
@@ -54,7 +47,7 @@ if ($flavour =~ /3[12]/) {
 	$g="g";
 }
 
-while (($output=shift) && ($output!~/\w[\w\-]*\.\w+$/)) {}
+while (($output=shift) && ($output!~/^\w[\w\-]*\.\w+$/)) {}
 open STDOUT,">$output";
 
 $softonly=0;
@@ -92,7 +85,9 @@ $code.=<<___ if(!$softonly && 0);	# hardware is slow for single block...
 	tmhl	%r0,0x4000	# check for message-security-assist
 	jz	.Lsoft_gmult
 	lghi	%r0,0
-	lg	%r1,24(%r1)	# load second word of kimd capabilities vector
+	la	%r1,16($sp)
+	.long	0xb93e0004	# kimd %r0,%r4
+	lg	%r1,24($sp)
 	tmhh	%r1,0x4000	# check for function 65
 	jz	.Lsoft_gmult
 	stg	%r0,16($sp)	# arrange 16 bytes of zero input
@@ -158,7 +153,7 @@ $code.=<<___;
 	lg	$Zhi,0+1($Xi)
 	lghi	$tmp,0
 .Louter:
-	xg	$Zhi,0($inp)		# Xi ^= inp
+	xg	$Zhi,0($inp)		# Xi ^= inp 
 	xg	$Zlo,8($inp)
 	xgr	$Zhi,$tmp
 	stg	$Zlo,8+1($Xi)

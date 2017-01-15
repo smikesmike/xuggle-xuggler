@@ -1,11 +1,4 @@
-#! /usr/bin/env perl
-# Copyright 2005-2016 The OpenSSL Project Authors. All Rights Reserved.
-#
-# Licensed under the OpenSSL license (the "License").  You may not use
-# this file except in compliance with the License.  You can obtain a copy
-# in the file LICENSE in the source distribution or at
-# https://www.openssl.org/source/license.html
-
+#!/usr/bin/env perl
 #
 # ====================================================================
 # Written by Andy Polyakov <appro@fy.chalmers.se> for the OpenSSL
@@ -23,7 +16,7 @@
 # table]. I stick to value of 2 for two reasons: 1. smaller table
 # minimizes cache trashing and thus mitigates the hazard of side-
 # channel leakage similar to AES cache-timing one; 2. performance
-# gap among different Âµ-archs is smaller.
+# gap among different µ-archs is smaller.
 #
 # Performance table lists rounded amounts of CPU cycles spent by
 # whirlpool_block_mmx routine on single 64 byte input block, i.e.
@@ -31,7 +24,7 @@
 # multiplying 64 by CPU clock frequency and dividing by relevant
 # value from the given table:
 #
-#		$SCALE=2/8	icc8	gcc3
+#		$SCALE=2/8	icc8	gcc3	
 # Intel P4	3200/4600	4600(*)	6400
 # Intel PIII	2900/3000	4900	5400
 # AMD K[78]	2500/1800	9900	8200(**)
@@ -55,9 +48,6 @@
 $0 =~ m/(.*[\/\\])[^\/\\]+$/; $dir=$1;
 push(@INC,"${dir}","${dir}../../perlasm");
 require "x86asm.pl";
-
-$output=pop;
-open STDOUT,">$output";
 
 &asm_init($ARGV[0],"wp-mmx.pl");
 
@@ -502,6 +492,4 @@ for($i=0;$i<8;$i++) {
 	&L(0xca,0x2d,0xbf,0x07,0xad,0x5a,0x83,0x33);
 
 &function_end_B("whirlpool_block_mmx");
-&asm_finish();
-
-close STDOUT;
+&asm_finish(); 
