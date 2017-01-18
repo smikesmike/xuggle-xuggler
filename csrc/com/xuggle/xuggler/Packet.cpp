@@ -191,16 +191,18 @@ namespace com { namespace xuggle { namespace xuggler
     // Keep a copy of this, because we're going to nuke
     // it temporarily.
     uint8_t* data_buf = mPacket->data;
-    //void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+    void (*orig_destruct)(struct AVPacket *) = mPacket->destruct;
 
     // copy all data members, including data and size,
     // but we'll overwrite those next.
     *mPacket = *pkt;
     mPacket->buf = NULL;
     mPacket->data = data_buf;
-    mPacket->destruct = NULL;
+    mPacket->destruct = orig_destruct;
+    av_copy_packet_side_data(mPacket, pkt);
     // And assume we're now complete.
     setComplete(true, mPacket->size);
+
   }
 
   void
@@ -275,15 +277,15 @@ namespace com { namespace xuggle { namespace xuggler
       // Keep a copy of this, because we're going to nuke
       // it temporarily.
       uint8_t* data_buf = retval->mPacket->data;
-      // void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+      void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
 
       // copy all data members, including data and size,
       // but we'll overwrite those next.
       *(retval->mPacket) = *(packet->mPacket);
       retval->mPacket->buf = NULL;
       retval->mPacket->data = data_buf;
-      retval->mPacket->destruct =NULL;
-
+      retval->mPacket->destruct = orig_destruct;
+      av_copy_packet_side_data(retval->mPacket, packet->mPacket);
       // separate here to catch addRef()
       timeBase = packet->getTimeBase();
       retval->setTimeBase(timeBase);
