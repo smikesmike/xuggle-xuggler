@@ -3683,9 +3683,7 @@ void ff_free_stream(AVFormatContext *s, AVStream *st) {
     av_dict_free(&st->metadata);
     av_freep(&st->probe_data.buf);
     av_freep(&st->index_entries);
-    av_freep(&st->codec->extradata);
-    av_freep(&st->codec->subtitle_header);
-    av_freep(&st->codec);
+    avcodec_free_context(&st->codec);
     av_freep(&st->priv_data);
     if (st->info)
         av_freep(&st->info->duration_error);
@@ -3764,8 +3762,11 @@ AVStream *avformat_new_stream(AVFormatContext *s, const AVCodec *c)
     int i;
     AVStream **streams;
 
-    if (s->nb_streams >= INT_MAX/sizeof(*streams))
+    if (s->nb_streams >= FFMIN(s->max_streams, INT_MAX/sizeof(*streams))) {
+        if (s->max_streams < INT_MAX/sizeof(*streams))
+            av_log(s, AV_LOG_ERROR, "Number of streams exceeds max_streams parameter (%d), see the documentation if you wish to increase it\n", s->max_streams);
         return NULL;
+    }
     streams = av_realloc_array(s->streams, s->nb_streams + 1, sizeof(*streams));
     if (!streams)
         return NULL;
