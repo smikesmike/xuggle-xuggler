@@ -1,3 +1,4 @@
 language: java
-install: ant deps make get-deps
+install: ant deps 
+install: make get-deps
 script: ant clean stage 
