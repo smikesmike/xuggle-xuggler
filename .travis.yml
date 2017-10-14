@@ -4,6 +4,12 @@ cache:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y yasm
+  - cd $TRAVIS_BUILD_DIR/build/native/x86_64-unknown-linux-gnu/captive
+  - find . -name Makefile -exec touch {} \;
+  - find . -name *.o -exec touch {} \;
+  - find . -name *.a -exec touch {} \;
+  - find . -name *.lo -exec touch {} \;
+  - cd -
 language: java
 install: ant clean stage 
 script: ant run-tests-native
