@@ -6,4 +6,4 @@ before_install:
   - sudo apt-get install -y yasm
 language: java
 install: ant clean stage 
-script: ant run-tests
+script: ant run-tests-native
