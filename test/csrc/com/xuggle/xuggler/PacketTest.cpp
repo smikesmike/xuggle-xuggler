@@ -87,8 +87,6 @@ PacketTest :: testCopyPacket()
   packet->setStreamIndex(streamIndex);
   int64_t duration = 28387728;
   packet->setDuration(duration);
-  int64_t convergenceDuration = 283;
-  packet->setConvergenceDuration(convergenceDuration);
   
   // Now, make a copy
   RefPointer<IPacket> newPacket = IPacket::make(packet.value(), false);
@@ -99,8 +97,6 @@ PacketTest :: testCopyPacket()
   VS_TUT_ENSURE_EQUALS("should equal", dts, newPacket->getDts());
   VS_TUT_ENSURE_EQUALS("should equal", streamIndex, newPacket->getStreamIndex());
   VS_TUT_ENSURE_EQUALS("should equal", duration, newPacket->getDuration());
-  VS_TUT_ENSURE_EQUALS("should equal", convergenceDuration,
-      newPacket->getConvergenceDuration());
   RefPointer<IRational> newBase = newPacket->getTimeBase();
   VS_TUT_ENSURE("should be equal", newBase->compareTo(timeBase.value()) == 0);
 }

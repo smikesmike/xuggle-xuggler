@@ -161,7 +161,7 @@ public class IContainerFormat extends RefCounted {
     {
       ICodec.ID id = getOutputCodecID(i);
       // remove duplicate IDs
-      if (id != ICodec.ID.AV_CODEC_ID_NONE && !uniqueSet.contains(id))
+      if (id != ICodec.ID.CODEC_ID_NONE && !uniqueSet.contains(id))
         retval.add(id);
       uniqueSet.add(id);
     }    
@@ -194,7 +194,7 @@ public class IContainerFormat extends RefCounted {
       int tag = getOutputCodecTag(i);
       ICodec.ID id = getOutputCodecID(i);
       // remove duplicate tags
-      if (id != ICodec.ID.AV_CODEC_ID_NONE && !uniqueSet.contains(tag))
+      if (id != ICodec.ID.CODEC_ID_NONE && !uniqueSet.contains(tag))
         retval.add(tag);
       uniqueSet.add(tag);
     }    
@@ -278,7 +278,7 @@ public class IContainerFormat extends RefCounted {
     ICodec codec = null;
     try
     {
-      if (inputCodecId == null || inputCodecId == ICodec.ID.AV_CODEC_ID_NONE)
+      if (inputCodecId == null || inputCodecId == ICodec.ID.CODEC_ID_NONE)
         throw new IllegalArgumentException("null inputCodecId");
       
       codec = ICodec.findDecodingCodec(inputCodecId);
@@ -373,7 +373,7 @@ public class IContainerFormat extends RefCounted {
         throw new IllegalArgumentException(
             "passed output container format, actally an input container format");
 
-      if (inputCodecId != null && inputCodecId != ICodec.ID.AV_CODEC_ID_NONE)
+      if (inputCodecId != null && inputCodecId != ICodec.ID.CODEC_ID_NONE)
       {
         inputCodec = ICodec.findDecodingCodec(inputCodecId);
         if (inputCodec == null)
@@ -402,7 +402,7 @@ public class IContainerFormat extends RefCounted {
           outputCodecId = this.getOutputDefaultSubtitleCodec();
           break;
       }
-      if (outputCodecId != null && outputCodecId != ICodec.ID.AV_CODEC_ID_NONE)
+      if (outputCodecId != null && outputCodecId != ICodec.ID.CODEC_ID_NONE)
       {
         codec = ICodec.findEncodingCodec(outputCodecId);
       }
@@ -437,7 +437,7 @@ public class IContainerFormat extends RefCounted {
           }
         }
       }
-      if (outputCodecId == null || outputCodecId == ICodec.ID.AV_CODEC_ID_NONE)
+      if (outputCodecId == null || outputCodecId == ICodec.ID.CODEC_ID_NONE)
         throw new UnsupportedOperationException("could not guess codec");
       return outputCodecId;
     }

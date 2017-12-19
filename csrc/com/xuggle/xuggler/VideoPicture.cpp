@@ -102,11 +102,13 @@ namespace com { namespace xuggle { namespace xuggler
       if (!bytes)
         throw std::runtime_error("could not access raw memory in buffer");
 
-      (void) avpicture_fill((AVPicture*)retval->mFrame,
-          bytes,
-          (enum PixelFormat) format,
-          width,
-          height);
+      (void) av_image_fill_arrays(retval->mFrame->data,
+              retval->mFrame->linesize,
+              bytes, 
+              (AVPixelFormat) format, 
+              width, 
+              height, 
+              1);
 
     }
     catch (std::bad_alloc &e)
@@ -208,10 +210,15 @@ namespace com { namespace xuggle { namespace xuggler
     //*frame = *mFrame;
     // and then relies on avpicture_fill to overwrite any areas in frame that
     // are pointed to the wrong place.
-    avpicture_fill((AVPicture*)frame, buffer, (enum PixelFormat) frame->format,
-        frame->width, frame->height);
+    av_image_fill_arrays(frame->data,
+              frame->linesize,
+              buffer, 
+              (AVPixelFormat) frame->format, 
+              frame->width, 
+              frame->height, 
+              1);
     frame->quality = getQuality();
-    frame->type = FF_BUFFER_TYPE_USER;
+//    frame->type = FF_BUFFER_TYPE_USER;
   }
 
   void
@@ -246,10 +253,10 @@ namespace com { namespace xuggle { namespace xuggler
         // Make sure the frame isn't already using our buffer
         if(buffer != frame->data[0])
         {
-          avpicture_fill((AVPicture*)mFrame, buffer,
-              (enum PixelFormat) pixel, width, height);
-          av_picture_copy((AVPicture*)mFrame, (AVPicture*)frame,
-              (PixelFormat)frame->format, frame->width, frame->height);
+          av_image_fill_arrays(mFrame->data, mFrame->linesize, buffer, 
+              (AVPixelFormat) frame->format, width, height, 1);
+          av_image_copy(mFrame->data, mFrame->linesize, (const uint8_t **)frame->data,
+                  frame->linesize, (AVPixelFormat)frame->format, frame->width, frame->height);
         }
         mFrame->key_frame = frame->key_frame;
       }
@@ -364,7 +371,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     int retval = -1;
     if (mFrame->width > 0 && mFrame->height > 0)
-      retval = avpicture_get_size((PixelFormat)mFrame->format, mFrame->width, mFrame->height);
+      retval = av_image_get_buffer_size((AVPixelFormat)mFrame->format, mFrame->width, mFrame->height, 1);
     return retval;
   }
 
@@ -410,15 +417,17 @@ namespace com { namespace xuggle { namespace xuggler
     if (!buffer)
       throw std::bad_alloc();
 
-    int imageSize = avpicture_fill((AVPicture*)mFrame,
+    int imageSize = av_image_fill_arrays(mFrame->data,
+        mFrame->linesize,
         buffer,
-        (enum PixelFormat) mFrame->format,
+        (AVPixelFormat)mFrame->format,
         mFrame->width,
-        mFrame->height);
+        mFrame->height,
+        1);
     if (imageSize != bufSize)
       throw std::runtime_error("could not fill picture");
 
-    mFrame->type = FF_BUFFER_TYPE_USER;
+//    mFrame->type = FF_BUFFER_TYPE_USER;
     VS_ASSERT(mFrame->data[0] != 0, "Empty buffer");
   }
 

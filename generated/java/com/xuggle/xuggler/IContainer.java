@@ -789,7 +789,16 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     FLAG_IGNDTS(XugglerJNI.IContainer_FLAG_IGNDTS_get()),
     FLAG_NOFILLIN(XugglerJNI.IContainer_FLAG_NOFILLIN_get()),
     FLAG_NOPARSE(XugglerJNI.IContainer_FLAG_NOPARSE_get()),
-    FLAG_RTP_HINT(XugglerJNI.IContainer_FLAG_RTP_HINT_get());
+    FLAG_NOBUFFER(XugglerJNI.IContainer_FLAG_NOBUFFER_get()),
+    FLAG_CUSTOM_IO(XugglerJNI.IContainer_FLAG_CUSTOM_IO_get()),
+    FLAG_DISCARD_CORRUPT(XugglerJNI.IContainer_FLAG_DISCARD_CORRUPT_get()),
+    FLAG_FLUSH_PACKETS(XugglerJNI.IContainer_FLAG_FLUSH_PACKETS_get()),
+    FLAG_BITEXACT(XugglerJNI.IContainer_FLAG_BITEXACT_get()),
+    FLAG_MP4A_LATM(XugglerJNI.IContainer_FLAG_MP4A_LATM_get()),
+    FLAG_SORT_DTS(XugglerJNI.IContainer_FLAG_SORT_DTS_get()),
+    FLAG_PRIV_OPT(XugglerJNI.IContainer_FLAG_PRIV_OPT_get()),
+    FLAG_KEEP_SIDE_DATA(XugglerJNI.IContainer_FLAG_KEEP_SIDE_DATA_get()),
+    FLAG_FAST_SEEK(XugglerJNI.IContainer_FLAG_FAST_SEEK_get());
 
     public final int swigValue() {
       return swigValue;

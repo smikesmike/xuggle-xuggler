@@ -282,7 +282,7 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
     }
 
     if (s->avctx->bits_per_raw_sample != bits) {
-        av_log(s->avctx, AV_LOG_INFO, "Changeing bps to %d\n", bits);
+        av_log(s->avctx, AV_LOG_INFO, "Changing bps to %d\n", bits);
         s->avctx->bits_per_raw_sample = bits;
         init_idct(s->avctx);
     }
@@ -687,7 +687,7 @@ static int decode_block(MJpegDecodeContext *s, int16_t *block, int component,
         return AVERROR_INVALIDDATA;
     }
     val = val * quant_matrix[0] + s->last_dc[component];
-    val = FFMIN(val, 32767);
+    val = av_clip_int16(val);
     s->last_dc[component] = val;
     block[0] = val;
     /* AC coefs */
@@ -1271,8 +1271,8 @@ static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
 
     av_pix_fmt_get_chroma_sub_sample(s->avctx->pix_fmt, &chroma_h_shift,
                                      &chroma_v_shift);
-    chroma_width  = FF_CEIL_RSHIFT(s->width,  chroma_h_shift);
-    chroma_height = FF_CEIL_RSHIFT(s->height, chroma_v_shift);
+    chroma_width  = AV_CEIL_RSHIFT(s->width,  chroma_h_shift);
+    chroma_height = AV_CEIL_RSHIFT(s->height, chroma_v_shift);
 
     for (i = 0; i < nb_components; i++) {
         int c   = s->comp_index[i];
@@ -1689,7 +1689,11 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
 
         s->avctx->sample_aspect_ratio.num = get_bits(&s->gb, 16);
         s->avctx->sample_aspect_ratio.den = get_bits(&s->gb, 16);
-        ff_set_sar(s->avctx, s->avctx->sample_aspect_ratio);
+        if (   s->avctx->sample_aspect_ratio.num <= 0
+            || s->avctx->sample_aspect_ratio.den <= 0) {
+            s->avctx->sample_aspect_ratio.num = 0;
+            s->avctx->sample_aspect_ratio.den = 1;
+        }
 
         if (s->avctx->debug & FF_DEBUG_PICT_INFO)
             av_log(s->avctx, AV_LOG_INFO,
@@ -1953,24 +1957,54 @@ int ff_mjpeg_find_marker(MJpegDecodeContext *s,
     /* unescape buffer of SOS, use special treatment for JPEG-LS */
     if (start_code == SOS && !s->ls) {
         const uint8_t *src = *buf_ptr;
+        const uint8_t *ptr = src;
         uint8_t *dst = s->buffer;
 
-        while (src < buf_end) {
-            uint8_t x = *(src++);
+        #define copy_data_segment(skip) do {       \
+            ptrdiff_t length = (ptr - src) - (skip);  \
+            if (length > 0) {                         \
+                memcpy(dst, src, length);             \
+                dst += length;                        \
+                src = ptr;                            \
+            }                                         \
+        } while (0)
 
-            *(dst++) = x;
-            if (s->avctx->codec_id != AV_CODEC_ID_THP) {
+        if (s->avctx->codec_id == AV_CODEC_ID_THP) {
+            ptr = buf_end;
+            copy_data_segment(0);
+        } else {
+            while (ptr < buf_end) {
+                uint8_t x = *(ptr++);
+
                 if (x == 0xff) {
-                    while (src < buf_end && x == 0xff)
-                        x = *(src++);
+                    ptrdiff_t skip = 0;
+                    while (ptr < buf_end && x == 0xff) {
+                        x = *(ptr++);
+                        skip++;
+                    }
 
-                    if (x >= 0xd0 && x <= 0xd7)
-                        *(dst++) = x;
-                    else if (x)
-                        break;
+                    /* 0xFF, 0xFF, ... */
+                    if (skip > 1) {
+                        copy_data_segment(skip);
+
+                        /* decrement src as it is equal to ptr after the
+                         * copy_data_segment macro and we might want to
+                         * copy the current value of x later on */
+                        src--;
+                    }
+
+                    if (x < 0xd0 || x > 0xd7) {
+                        copy_data_segment(1);
+                        if (x)
+                            break;
+                    }
                 }
             }
+            if (src < ptr)
+                copy_data_segment(0);
         }
+        #undef copy_data_segment
+
         *unescaped_buf_ptr  = s->buffer;
         *unescaped_buf_size = dst - s->buffer;
         memset(s->buffer + *unescaped_buf_size, 0,
@@ -2088,6 +2122,9 @@ int ff_mjpeg_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
             /* Comment */
         else if (start_code == COM)
             mjpeg_decode_com(s);
+        else if (start_code == DQT) {
+            ff_mjpeg_decode_dqt(s);
+        }
 
         ret = -1;
 
@@ -2097,14 +2134,27 @@ int ff_mjpeg_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
             return AVERROR(ENOSYS);
         }
 
+        if (avctx->skip_frame == AVDISCARD_ALL) {
+            switch(start_code) {
+            case SOF0:
+            case SOF1:
+            case SOF2:
+            case SOF3:
+            case SOF48:
+            case SOI:
+            case SOS:
+            case EOI:
+                break;
+            default:
+                goto skip;
+            }
+        }
+
         switch (start_code) {
         case SOI:
             s->restart_interval = 0;
             s->restart_count    = 0;
             /* nothing to do on SOI */
-            break;
-        case DQT:
-            ff_mjpeg_decode_dqt(s);
             break;
         case DHT:
             if ((ret = ff_mjpeg_decode_dht(s)) < 0) {
@@ -2164,6 +2214,10 @@ eoi_parser:
                 if (s->bottom_field == !s->interlace_polarity)
                     break;
             }
+            if (avctx->skip_frame == AVDISCARD_ALL) {
+                s->got_picture = 0;
+                goto the_end_no_picture;
+            }
             if ((ret = av_frame_ref(frame, s->picture_ptr)) < 0)
                 return ret;
             *got_frame = 1;
@@ -2187,6 +2241,9 @@ eoi_parser:
             goto the_end;
         case SOS:
             s->cur_scan++;
+            if (avctx->skip_frame == AVDISCARD_ALL)
+                break;
+
             if ((ret = ff_mjpeg_decode_sos(s, NULL, 0, NULL)) < 0 &&
                 (avctx->err_recognition & AV_EF_EXPLODE))
                 goto fail;
@@ -2209,6 +2266,7 @@ eoi_parser:
             break;
         }
 
+skip:
         /* eof process start code */
         buf_ptr += (get_bits_count(&s->gb) + 7) / 8;
         av_log(avctx, AV_LOG_DEBUG,
@@ -2226,7 +2284,7 @@ fail:
     return ret;
 the_end:
 
-    is16bit = av_pix_fmt_desc_get(s->avctx->pix_fmt)->comp[0].step_minus1;
+    is16bit = av_pix_fmt_desc_get(s->avctx->pix_fmt)->comp[0].step > 1;
 
     if (AV_RB32(s->upscale_h)) {
         int p;
@@ -2251,8 +2309,8 @@ the_end:
             if (!s->upscale_h[p])
                 continue;
             if (p==1 || p==2) {
-                w = FF_CEIL_RSHIFT(w, hshift);
-                h = FF_CEIL_RSHIFT(h, vshift);
+                w = AV_CEIL_RSHIFT(w, hshift);
+                h = AV_CEIL_RSHIFT(h, vshift);
             }
             if (s->upscale_v[p])
                 h = (h+1)>>1;
@@ -2309,8 +2367,8 @@ the_end:
             if (!s->upscale_v[p])
                 continue;
             if (p==1 || p==2) {
-                w = FF_CEIL_RSHIFT(w, hshift);
-                h = FF_CEIL_RSHIFT(h, vshift);
+                w = AV_CEIL_RSHIFT(w, hshift);
+                h = AV_CEIL_RSHIFT(h, vshift);
             }
             dst = &((uint8_t *)s->picture_ptr->data[p])[(h - 1) * s->linesize[p]];
             for (i = h - 1; i; i--) {
@@ -2334,8 +2392,8 @@ the_end:
             int w = s->picture_ptr->width;
             int h = s->picture_ptr->height;
             if(index && index<3){
-                w = FF_CEIL_RSHIFT(w, hshift);
-                h = FF_CEIL_RSHIFT(h, vshift);
+                w = AV_CEIL_RSHIFT(w, hshift);
+                h = AV_CEIL_RSHIFT(h, vshift);
             }
             if(dst){
                 uint8_t *dst2 = dst + s->picture_ptr->linesize[index]*(h-1);
@@ -2405,6 +2463,7 @@ the_end:
     av_dict_copy(avpriv_frame_get_metadatap(data), s->exif_metadata, 0);
     av_dict_free(&s->exif_metadata);
 
+the_end_no_picture:
     av_log(avctx, AV_LOG_DEBUG, "decode frame unused %"PTRDIFF_SPECIFIER" bytes\n",
            buf_end - buf_ptr);
 //  return buf_end - buf_ptr;
@@ -2454,7 +2513,7 @@ static void decode_flush(AVCodecContext *avctx)
 #define VD AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_DECODING_PARAM
 static const AVOption options[] = {
     { "extern_huff", "Use external huffman table.",
-      OFFSET(extern_huff), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, VD },
+      OFFSET(extern_huff), AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, VD },
     { NULL },
 };
 
@@ -2478,7 +2537,8 @@ AVCodec ff_mjpeg_decoder = {
     .capabilities   = AV_CODEC_CAP_DR1,
     .max_lowres     = 3,
     .priv_class     = &mjpegdec_class,
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
+    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE |
+                      FF_CODEC_CAP_SKIP_FRAME_FILL_PARAM,
 };
 #endif
 #if CONFIG_THP_DECODER

@@ -84,12 +84,12 @@ static const uint8_t fic_header[7] = { 0, 0, 1, 'F', 'I', 'C', 'V' };
 
 static av_always_inline void fic_idct(int16_t *blk, int step, int shift, int rnd)
 {
-    const int t0 =  27246 * blk[3 * step] + 18405 * blk[5 * step];
-    const int t1 =  27246 * blk[5 * step] - 18405 * blk[3 * step];
-    const int t2 =   6393 * blk[7 * step] + 32139 * blk[1 * step];
-    const int t3 =   6393 * blk[1 * step] - 32139 * blk[7 * step];
-    const unsigned t4 = 5793U * (t2 + t0 + 0x800 >> 12);
-    const unsigned t5 = 5793U * (t3 + t1 + 0x800 >> 12);
+    const unsigned t0 =  27246 * blk[3 * step] + 18405 * blk[5 * step];
+    const unsigned t1 =  27246 * blk[5 * step] - 18405 * blk[3 * step];
+    const unsigned t2 =   6393 * blk[7 * step] + 32139 * blk[1 * step];
+    const unsigned t3 =   6393 * blk[1 * step] - 32139 * blk[7 * step];
+    const unsigned t4 = 5793U * ((int)(t2 + t0 + 0x800) >> 12);
+    const unsigned t5 = 5793U * ((int)(t3 + t1 + 0x800) >> 12);
     const unsigned t6 = t2 - t0;
     const unsigned t7 = t3 - t1;
     const unsigned t8 =  17734 * blk[2 * step] - 42813 * blk[6 * step];
@@ -456,7 +456,7 @@ static av_cold int fic_decode_init(AVCodecContext *avctx)
 }
 
 static const AVOption options[] = {
-{ "skip_cursor", "skip the cursor", offsetof(FICContext, skip_cursor), AV_OPT_TYPE_INT, {.i64 = 0 }, 0, 1, AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_VIDEO_PARAM },
+{ "skip_cursor", "skip the cursor", offsetof(FICContext, skip_cursor), AV_OPT_TYPE_BOOL, {.i64 = 0 }, 0, 1, AV_OPT_FLAG_DECODING_PARAM | AV_OPT_FLAG_VIDEO_PARAM },
 { NULL },
 };
 

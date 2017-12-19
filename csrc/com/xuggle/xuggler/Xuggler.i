@@ -138,7 +138,7 @@ import com.xuggle.ferry.*;
 // As per 1.17, we now make sure we generate proper Java enums on
 // classes
 %include "enums.swg"
-
+        
 %import <com/xuggle/ferry/Ferry.i>
 
 %include <com/xuggle/xuggler/Xuggler.h>

@@ -180,7 +180,10 @@ static int decode_picture_header(AVCodecContext *avctx, const uint8_t *buf, cons
     else
         ctx->mb_height = (avctx->height + 15) >> 4;
 
-    slice_count = AV_RB16(buf + 5);
+    // QT ignores the written value
+    // slice_count = AV_RB16(buf + 5);
+    slice_count = ctx->mb_height * ((ctx->mb_width >> log2_slice_mb_width) +
+                                    av_popcount(ctx->mb_width & (1 << log2_slice_mb_width) - 1));
 
     if (ctx->slice_count != slice_count || !ctx->slices) {
         av_freep(&ctx->slices);
@@ -264,6 +267,8 @@ static int decode_picture_header(AVCodecContext *avctx, const uint8_t *buf, cons
                                                                         \
         if (q > switch_bits) { /* exp golomb */                         \
             bits = exp_order - switch_bits + (q<<1);                    \
+            if (bits > FFMIN(MIN_CACHE_BITS, 31))                       \
+                return AVERROR_INVALIDDATA;                             \
             val = SHOW_UBITS(re, gb, bits) - (1 << exp_order) +         \
                 ((switch_bits + 1) << rice_order);                      \
             SKIP_BITS(re, gb, bits);                                    \
@@ -283,7 +288,7 @@ static int decode_picture_header(AVCodecContext *avctx, const uint8_t *buf, cons
 
 static const uint8_t dc_codebook[7] = { 0x04, 0x28, 0x28, 0x4D, 0x4D, 0x70, 0x70};
 
-static av_always_inline void decode_dc_coeffs(GetBitContext *gb, int16_t *out,
+static av_always_inline int decode_dc_coeffs(GetBitContext *gb, int16_t *out,
                                               int blocks_per_slice)
 {
     int16_t prev_dc;
@@ -307,6 +312,7 @@ static av_always_inline void decode_dc_coeffs(GetBitContext *gb, int16_t *out,
         out[0] = prev_dc;
     }
     CLOSE_READER(re, gb);
+    return 0;
 }
 
 // adaptive codebook switching lut according to previous run/level values
@@ -373,7 +379,8 @@ static int decode_slice_luma(AVCodecContext *avctx, SliceContext *slice,
 
     init_get_bits(&gb, buf, buf_size << 3);
 
-    decode_dc_coeffs(&gb, blocks, blocks_per_slice);
+    if ((ret = decode_dc_coeffs(&gb, blocks, blocks_per_slice)) < 0)
+        return ret;
     if ((ret = decode_ac_coeffs(avctx, &gb, blocks, blocks_per_slice)) < 0)
         return ret;
 
@@ -406,7 +413,8 @@ static int decode_slice_chroma(AVCodecContext *avctx, SliceContext *slice,
 
     init_get_bits(&gb, buf, buf_size << 3);
 
-    decode_dc_coeffs(&gb, blocks, blocks_per_slice);
+    if ((ret = decode_dc_coeffs(&gb, blocks, blocks_per_slice)) < 0)
+        return ret;
     if ((ret = decode_ac_coeffs(avctx, &gb, blocks, blocks_per_slice)) < 0)
         return ret;
 

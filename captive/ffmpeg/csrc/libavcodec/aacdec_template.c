@@ -89,6 +89,8 @@
            Parametric Stereo.
  */
 
+#include "libavutil/thread.h"
+
 static VLC vlc_scalefactors;
 static VLC vlc_spectral[11];
 
@@ -1067,10 +1069,54 @@ static void reset_predictor_group(PredictorState *ps, int group_num)
 
 static void aacdec_init(AACContext *ac);
 
+static av_cold void aac_static_table_init(void)
+{
+    AAC_INIT_VLC_STATIC( 0, 304);
+    AAC_INIT_VLC_STATIC( 1, 270);
+    AAC_INIT_VLC_STATIC( 2, 550);
+    AAC_INIT_VLC_STATIC( 3, 300);
+    AAC_INIT_VLC_STATIC( 4, 328);
+    AAC_INIT_VLC_STATIC( 5, 294);
+    AAC_INIT_VLC_STATIC( 6, 306);
+    AAC_INIT_VLC_STATIC( 7, 268);
+    AAC_INIT_VLC_STATIC( 8, 510);
+    AAC_INIT_VLC_STATIC( 9, 366);
+    AAC_INIT_VLC_STATIC(10, 462);
+
+    AAC_RENAME(ff_aac_sbr_init)();
+
+    ff_aac_tableinit();
+
+    INIT_VLC_STATIC(&vlc_scalefactors, 7,
+                    FF_ARRAY_ELEMS(ff_aac_scalefactor_code),
+                    ff_aac_scalefactor_bits,
+                    sizeof(ff_aac_scalefactor_bits[0]),
+                    sizeof(ff_aac_scalefactor_bits[0]),
+                    ff_aac_scalefactor_code,
+                    sizeof(ff_aac_scalefactor_code[0]),
+                    sizeof(ff_aac_scalefactor_code[0]),
+                    352);
+
+    // window initialization
+    AAC_RENAME(ff_kbd_window_init)(AAC_RENAME(ff_aac_kbd_long_1024), 4.0, 1024);
+    AAC_RENAME(ff_kbd_window_init)(AAC_RENAME(ff_aac_kbd_short_128), 6.0, 128);
+    AAC_RENAME(ff_init_ff_sine_windows)(10);
+    AAC_RENAME(ff_init_ff_sine_windows)( 9);
+    AAC_RENAME(ff_init_ff_sine_windows)( 7);
+
+    AAC_RENAME(cbrt_tableinit)();
+}
+
+static AVOnce aac_table_init = AV_ONCE_INIT;
+
 static av_cold int aac_decode_init(AVCodecContext *avctx)
 {
     AACContext *ac = avctx->priv_data;
     int ret;
+
+    ret = ff_thread_once(&aac_table_init, &aac_static_table_init);
+    if (ret != 0)
+        return AVERROR_UNKNOWN;
 
     ac->avctx = avctx;
     ac->oc[1].m4ac.sample_rate = avctx->sample_rate;
@@ -1123,20 +1169,6 @@ static av_cold int aac_decode_init(AVCodecContext *avctx)
         return AVERROR_INVALIDDATA;
     }
 
-    AAC_INIT_VLC_STATIC( 0, 304);
-    AAC_INIT_VLC_STATIC( 1, 270);
-    AAC_INIT_VLC_STATIC( 2, 550);
-    AAC_INIT_VLC_STATIC( 3, 300);
-    AAC_INIT_VLC_STATIC( 4, 328);
-    AAC_INIT_VLC_STATIC( 5, 294);
-    AAC_INIT_VLC_STATIC( 6, 306);
-    AAC_INIT_VLC_STATIC( 7, 268);
-    AAC_INIT_VLC_STATIC( 8, 510);
-    AAC_INIT_VLC_STATIC( 9, 366);
-    AAC_INIT_VLC_STATIC(10, 462);
-
-    AAC_RENAME(ff_aac_sbr_init)();
-
 #if USE_FIXED
     ac->fdsp = avpriv_alloc_fixed_dsp(avctx->flags & AV_CODEC_FLAG_BITEXACT);
 #else
@@ -1148,18 +1180,6 @@ static av_cold int aac_decode_init(AVCodecContext *avctx)
 
     ac->random_state = 0x1f2e3d4c;
 
-    ff_aac_tableinit();
-
-    INIT_VLC_STATIC(&vlc_scalefactors, 7,
-                    FF_ARRAY_ELEMS(ff_aac_scalefactor_code),
-                    ff_aac_scalefactor_bits,
-                    sizeof(ff_aac_scalefactor_bits[0]),
-                    sizeof(ff_aac_scalefactor_bits[0]),
-                    ff_aac_scalefactor_code,
-                    sizeof(ff_aac_scalefactor_code[0]),
-                    sizeof(ff_aac_scalefactor_code[0]),
-                    352);
-
     AAC_RENAME_32(ff_mdct_init)(&ac->mdct,       11, 1, 1.0 / RANGE15(1024.0));
     AAC_RENAME_32(ff_mdct_init)(&ac->mdct_ld,    10, 1, 1.0 / RANGE15(512.0));
     AAC_RENAME_32(ff_mdct_init)(&ac->mdct_small,  8, 1, 1.0 / RANGE15(128.0));
@@ -1169,14 +1189,6 @@ static av_cold int aac_decode_init(AVCodecContext *avctx)
     if (ret < 0)
         return ret;
 #endif
-    // window initialization
-    AAC_RENAME(ff_kbd_window_init)(AAC_RENAME(ff_aac_kbd_long_1024), 4.0, 1024);
-    AAC_RENAME(ff_kbd_window_init)(AAC_RENAME(ff_aac_kbd_short_128), 6.0, 128);
-    AAC_RENAME(ff_init_ff_sine_windows)(10);
-    AAC_RENAME(ff_init_ff_sine_windows)( 9);
-    AAC_RENAME(ff_init_ff_sine_windows)( 7);
-
-    AAC_RENAME(cbrt_tableinit)();
 
     return 0;
 }
@@ -1243,6 +1255,8 @@ static int decode_ics_info(AACContext *ac, IndividualChannelStream *ics,
     const MPEG4AudioConfig *const m4ac = &ac->oc[1].m4ac;
     const int aot = m4ac->object_type;
     const int sampling_index = m4ac->sampling_index;
+    int ret_fail = AVERROR_INVALIDDATA;
+
     if (aot != AOT_ER_AAC_ELD) {
         if (get_bits1(gb)) {
             av_log(ac->avctx, AV_LOG_ERROR, "Reserved bit set.\n");
@@ -1293,8 +1307,10 @@ static int decode_ics_info(AACContext *ac, IndividualChannelStream *ics,
                 ics->num_swb       =    ff_aac_num_swb_512[sampling_index];
                 ics->tns_max_bands =  ff_tns_max_bands_512[sampling_index];
             }
-            if (!ics->num_swb || !ics->swb_offset)
-                return AVERROR_BUG;
+            if (!ics->num_swb || !ics->swb_offset) {
+                ret_fail = AVERROR_BUG;
+                goto fail;
+            }
         } else {
             ics->swb_offset    =    ff_swb_offset_1024[sampling_index];
             ics->num_swb       =   ff_aac_num_swb_1024[sampling_index];
@@ -1318,7 +1334,8 @@ static int decode_ics_info(AACContext *ac, IndividualChannelStream *ics,
                 if (aot == AOT_ER_AAC_LD) {
                     av_log(ac->avctx, AV_LOG_ERROR,
                            "LTP in ER AAC LD not yet implemented.\n");
-                    return AVERROR_PATCHWELCOME;
+                    ret_fail = AVERROR_PATCHWELCOME;
+                    goto fail;
                 }
                 if ((ics->ltp.present = get_bits(gb, 1)))
                     decode_ltp(&ics->ltp, gb, ics->max_sfb);
@@ -1337,7 +1354,7 @@ static int decode_ics_info(AACContext *ac, IndividualChannelStream *ics,
     return 0;
 fail:
     ics->max_sfb = 0;
-    return AVERROR_INVALIDDATA;
+    return ret_fail;
 }
 
 /**
@@ -1924,16 +1941,17 @@ static int decode_ics(AACContext *ac, SingleChannelElement *sce,
     global_gain = get_bits(gb, 8);
 
     if (!common_window && !scale_flag) {
-        if (decode_ics_info(ac, ics, gb) < 0)
-            return AVERROR_INVALIDDATA;
+        ret = decode_ics_info(ac, ics, gb);
+        if (ret < 0)
+            goto fail;
     }
 
     if ((ret = decode_band_types(ac, sce->band_type,
                                  sce->band_type_run_end, gb, ics)) < 0)
-        return ret;
+        goto fail;
     if ((ret = decode_scalefactors(ac, sce->sf, gb, global_gain, ics,
                                   sce->band_type, sce->band_type_run_end)) < 0)
-        return ret;
+        goto fail;
 
     pulse_present = 0;
     if (!scale_flag) {
@@ -1941,37 +1959,48 @@ static int decode_ics(AACContext *ac, SingleChannelElement *sce,
             if (ics->window_sequence[0] == EIGHT_SHORT_SEQUENCE) {
                 av_log(ac->avctx, AV_LOG_ERROR,
                        "Pulse tool not allowed in eight short sequence.\n");
-                return AVERROR_INVALIDDATA;
+                ret = AVERROR_INVALIDDATA;
+                goto fail;
             }
             if (decode_pulses(&pulse, gb, ics->swb_offset, ics->num_swb)) {
                 av_log(ac->avctx, AV_LOG_ERROR,
                        "Pulse data corrupt or invalid.\n");
-                return AVERROR_INVALIDDATA;
+                ret = AVERROR_INVALIDDATA;
+                goto fail;
             }
         }
         tns->present = get_bits1(gb);
-        if (tns->present && !er_syntax)
-            if (decode_tns(ac, tns, gb, ics) < 0)
-                return AVERROR_INVALIDDATA;
+        if (tns->present && !er_syntax) {
+            ret = decode_tns(ac, tns, gb, ics);
+            if (ret < 0)
+                goto fail;
+        }
         if (!eld_syntax && get_bits1(gb)) {
             avpriv_request_sample(ac->avctx, "SSR");
-            return AVERROR_PATCHWELCOME;
+            ret = AVERROR_PATCHWELCOME;
+            goto fail;
         }
         // I see no textual basis in the spec for this occurring after SSR gain
         // control, but this is what both reference and real implmentations do
-        if (tns->present && er_syntax)
-            if (decode_tns(ac, tns, gb, ics) < 0)
-                return AVERROR_INVALIDDATA;
+        if (tns->present && er_syntax) {
+            ret = decode_tns(ac, tns, gb, ics);
+            if (ret < 0)
+                goto fail;
+        }
     }
 
-    if (decode_spectrum_and_dequant(ac, out, gb, sce->sf, pulse_present,
-                                    &pulse, ics, sce->band_type) < 0)
-        return AVERROR_INVALIDDATA;
+    ret = decode_spectrum_and_dequant(ac, out, gb, sce->sf, pulse_present,
+                                    &pulse, ics, sce->band_type);
+    if (ret < 0)
+        goto fail;
 
     if (ac->oc[1].m4ac.object_type == AOT_AAC_MAIN && !common_window)
         apply_prediction(ac, sce);
 
     return 0;
+fail:
+    tns->present = 0;
+    return ret;
 }
 
 /**
@@ -2161,6 +2190,10 @@ static int decode_cce(AACContext *ac, GetBitContext *gb, ChannelElement *che)
             cge = coup->coupling_point == AFTER_IMDCT ? 1 : get_bits1(gb);
             gain = cge ? get_vlc2(gb, vlc_scalefactors.table, 7, 3) - 60: 0;
             gain_cache = GET_GAIN(scale, gain);
+#if USE_FIXED
+            if ((abs(gain_cache)-1024) >> 3 > 30)
+                return AVERROR(ERANGE);
+#endif
         }
         if (coup->coupling_point == AFTER_IMDCT) {
             coup->gain[c][0] = gain_cache;
@@ -2178,6 +2211,10 @@ static int decode_cce(AACContext *ac, GetBitContext *gb, ChannelElement *che)
                                     t >>= 1;
                                 }
                                 gain_cache = GET_GAIN(scale, t) * s;
+#if USE_FIXED
+                                if ((abs(gain_cache)-1024) >> 3 > 30)
+                                    return AVERROR(ERANGE);
+#endif
                             }
                         }
                         coup->gain[c][idx] = gain_cache;
@@ -2351,7 +2388,7 @@ static int decode_extension_payload(AACContext *ac, GetBitContext *gb, int cnt,
  * @param   decode  1 if tool is used normally, 0 if tool is used in LTP.
  * @param   coef    spectral coefficients
  */
-static void apply_tns(INTFLOAT coef[1024], TemporalNoiseShaping *tns,
+static void apply_tns(INTFLOAT coef_param[1024], TemporalNoiseShaping *tns,
                       IndividualChannelStream *ics, int decode)
 {
     const int mmm = FFMIN(ics->tns_max_bands, ics->max_sfb);
@@ -2359,6 +2396,7 @@ static void apply_tns(INTFLOAT coef[1024], TemporalNoiseShaping *tns,
     int bottom, top, order, start, end, size, inc;
     INTFLOAT lpc[TNS_MAX_ORDER];
     INTFLOAT tmp[TNS_MAX_ORDER+1];
+    UINTFLOAT *coef = coef_param;
 
     for (w = 0; w < ics->num_windows; w++) {
         bottom = ics->num_swb;
@@ -2388,7 +2426,7 @@ static void apply_tns(INTFLOAT coef[1024], TemporalNoiseShaping *tns,
                 // ar filter
                 for (m = 0; m < size; m++, start += inc)
                     for (i = 1; i <= FFMIN(m, order); i++)
-                        coef[start] -= AAC_MUL26(coef[start - i * inc], lpc[i - 1]);
+                        coef[start] -= AAC_MUL26((INTFLOAT)coef[start - i * inc], lpc[i - 1]);
             } else {
                 // ma filter
                 for (m = 0; m < size; m++, start += inc) {
@@ -3227,16 +3265,4 @@ static const AVClass aac_decoder_class = {
     .item_name  = av_default_item_name,
     .option     = options,
     .version    = LIBAVUTIL_VERSION_INT,
-};
-
-static const AVProfile profiles[] = {
-    { FF_PROFILE_AAC_MAIN,  "Main"     },
-    { FF_PROFILE_AAC_LOW,   "LC"       },
-    { FF_PROFILE_AAC_SSR,   "SSR"      },
-    { FF_PROFILE_AAC_LTP,   "LTP"      },
-    { FF_PROFILE_AAC_HE,    "HE-AAC"   },
-    { FF_PROFILE_AAC_HE_V2, "HE-AACv2" },
-    { FF_PROFILE_AAC_LD,    "LD"       },
-    { FF_PROFILE_AAC_ELD,   "ELD"      },
-    { FF_PROFILE_UNKNOWN },
 };

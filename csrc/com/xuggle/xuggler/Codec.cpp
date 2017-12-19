@@ -28,7 +28,7 @@ VS_LOG_SETUP(VS_CPP_PACKAGE);
 namespace com { namespace xuggle { namespace xuggler
 {
   using namespace com::xuggle::ferry;
-
+  
   Codec :: Codec()
   {
     VS_LOG_TRACE("Starting");
@@ -279,7 +279,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mCodec)
       return 0;
     int count = 0;
-    for(const enum PixelFormat* p = mCodec->pix_fmts;
+    for(const AVPixelFormat* p = mCodec->pix_fmts;
     p && (*p!=-1);
     p++)
       ++count;
@@ -293,7 +293,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mCodec)
       return IPixelFormat::NONE;
     int i = 0;
-    for(const enum PixelFormat* p = mCodec->pix_fmts;
+    for(const AVPixelFormat* p = mCodec->pix_fmts;
     p && (*p!=-1);
     p++,i++)
       if (index == i)

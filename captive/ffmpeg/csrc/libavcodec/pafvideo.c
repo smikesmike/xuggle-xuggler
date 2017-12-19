@@ -181,6 +181,8 @@ static int decode_0(PAFVideoDecContext *c, uint8_t *pkt, uint8_t code)
             dend   = c->frame[page] + c->frame_size;
             offset = (x & 0x7F) * 2;
             j      = bytestream2_get_le16(&c->gb) + offset;
+            if (bytestream2_get_bytes_left(&c->gb) < (j - offset) * 16)
+                return AVERROR_INVALIDDATA;
             do {
                 offset++;
                 if (dst + 3 * c->width + 4 > dend)
@@ -198,7 +200,8 @@ static int decode_0(PAFVideoDecContext *c, uint8_t *pkt, uint8_t code)
     do {
         set_src_position(c, &src, &send);
         if ((src + 3 * c->width + 4 > send) ||
-            (dst + 3 * c->width + 4 > dend))
+            (dst + 3 * c->width + 4 > dend) ||
+            bytestream2_get_bytes_left(&c->gb) < 4)
             return AVERROR_INVALIDDATA;
         copy_block4(dst, src, c->width, c->width, 4);
         i++;
@@ -273,7 +276,7 @@ static int paf_video_decode(AVCodecContext *avctx, void *data,
     bytestream2_init(&c->gb, pkt->data, pkt->size);
 
     code = bytestream2_get_byte(&c->gb);
-    if ((code & 0xF) > 4) {
+    if ((code & 0xF) > 4 || (code & 0xF) == 3) {
         avpriv_request_sample(avctx, "unknown/invalid code");
         return AVERROR_INVALIDDATA;
     }

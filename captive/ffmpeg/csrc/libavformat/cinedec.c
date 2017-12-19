@@ -49,12 +49,12 @@ enum {
     CFA_VRIV6     = 2,  /**< BGGR/GRBG */
     CFA_BAYER     = 3,  /**< GB/RG */
     CFA_BAYERFLIP = 4,  /**< RG/GB */
-
-    CFA_TLGRAY    = 0x80000000,
-    CFA_TRGRAY    = 0x40000000,
-    CFA_BLGRAY    = 0x20000000,
-    CFA_BRGRAY    = 0x10000000
 };
+
+#define CFA_TLGRAY  0x80000000U
+#define CFA_TRGRAY  0x40000000U
+#define CFA_BLGRAY  0x20000000U
+#define CFA_BRGRAY  0x10000000U
 
 static int cine_read_probe(AVProbeData *p)
 {
@@ -267,8 +267,12 @@ static int cine_read_header(AVFormatContext *avctx)
 
     /* parse image offsets */
     avio_seek(pb, offImageOffsets, SEEK_SET);
-    for (i = 0; i < st->duration; i++)
+    for (i = 0; i < st->duration; i++) {
+        if (avio_feof(pb))
+            return AVERROR_INVALIDDATA;
+
         av_add_index_entry(st, avio_rl64(pb), i, 0, 0, AVINDEX_KEYFRAME);
+    }
 
     return 0;
 }

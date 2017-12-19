@@ -41,6 +41,7 @@
 
 static const struct ogg_codec * const ogg_codecs[] = {
     &ff_skeleton_codec,
+    &ff_daala_codec,
     &ff_dirac_codec,
     &ff_speex_codec,
     &ff_vorbis_codec,
@@ -708,8 +709,10 @@ static int ogg_read_header(AVFormatContext *s)
                    "Headers mismatch for stream %d: "
                    "expected %d received %d.\n",
                    i, os->codec->nb_header, os->nb_header);
-            if (s->error_recognition & AV_EF_EXPLODE)
+            if (s->error_recognition & AV_EF_EXPLODE) {
+                ogg_read_close(s);
                 return AVERROR_INVALIDDATA;
+            }
         }
         if (os->start_granule != OGG_NOGRANULE_VALUE)
             os->lastpts = s->streams[i]->start_time =
@@ -846,7 +849,7 @@ retry:
 
     return psize;
 fail:
-    av_free_packet(pkt);
+    av_packet_unref(pkt);
     return AVERROR(ENOMEM);
 }
 

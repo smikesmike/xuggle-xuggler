@@ -32,13 +32,13 @@ public class IBuffer extends RefCounted {
    *
    */ 
   public IBuffer(long ignore1, boolean ignore2) {
-    super(FerryJNI.IBuffer_SWIGUpcast(ignore1), ignore2);
+    super(FerryJNI.SWIGIBufferUpcast(ignore1), ignore2);
     swigCPtr = ignore1;
   }
   protected IBuffer(long cPtr, boolean cMemoryOwn,
       java.util.concurrent.atomic.AtomicLong ref)
   {
-    super(FerryJNI.IBuffer_SWIGUpcast(cPtr),
+    super(FerryJNI.SWIGIBufferUpcast(cPtr),
      cMemoryOwn, ref);
     swigCPtr = cPtr;
   }

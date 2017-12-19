@@ -191,14 +191,14 @@ namespace com { namespace xuggle { namespace xuggler
     // Keep a copy of this, because we're going to nuke
     // it temporarily.
     uint8_t* data_buf = mPacket->data;
-    void (*orig_destruct)(struct AVPacket *) = mPacket->destruct;
+//    void (*orig_destruct)(struct AVPacket *) = mPacket->destruct;
 
     // copy all data members, including data and size,
     // but we'll overwrite those next.
     *mPacket = *pkt;
     mPacket->buf = NULL;
     mPacket->data = data_buf;
-    mPacket->destruct = orig_destruct;
+//    mPacket->destruct = orig_destruct;
     av_copy_packet_side_data(mPacket, pkt);
     // And assume we're now complete.
     setComplete(true, mPacket->size);
@@ -209,7 +209,7 @@ namespace com { namespace xuggle { namespace xuggler
   Packet :: reset()
   {
     if (mPacket) {
-      av_free_packet(mPacket);
+      av_packet_unref(mPacket);
       av_init_packet(mPacket);
     }
     setComplete(false, 0);
@@ -277,14 +277,14 @@ namespace com { namespace xuggle { namespace xuggler
       // Keep a copy of this, because we're going to nuke
       // it temporarily.
       uint8_t* data_buf = retval->mPacket->data;
-      void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
+//      void (*orig_destruct)(struct AVPacket *) = retval->mPacket->destruct;
 
       // copy all data members, including data and size,
       // but we'll overwrite those next.
       *(retval->mPacket) = *(packet->mPacket);
       retval->mPacket->buf = NULL;
       retval->mPacket->data = data_buf;
-      retval->mPacket->destruct = orig_destruct;
+//      retval->mPacket->destruct = orig_destruct;
       av_copy_packet_side_data(retval->mPacket, packet->mPacket);
       // separate here to catch addRef()
       timeBase = packet->getTimeBase();
@@ -392,17 +392,5 @@ namespace com { namespace xuggle { namespace xuggler
     // inherently somewhat dangerous.
     (void) closure;
     av_free(buf);
-  }
-
-  int64_t
-  Packet :: getConvergenceDuration()
-  {
-    return (mPacket ? mPacket->convergence_duration : -1);
-  }
-  
-  void
-  Packet :: setConvergenceDuration(int64_t duration)
-  {
-    if (mPacket) mPacket->convergence_duration = duration;
   }
   }}}

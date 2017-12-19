@@ -74,8 +74,6 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setStreamIndex(int32_t streamIndex);
     virtual void setDuration(int64_t duration);
     virtual void setPosition(int64_t position);
-    virtual int64_t getConvergenceDuration();
-    virtual void setConvergenceDuration(int64_t duration);
     virtual void setData(com::xuggle::ferry::IBuffer* buffer);
 
     AVPacket *getAVPacket() { return mPacket; }

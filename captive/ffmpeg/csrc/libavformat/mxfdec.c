@@ -491,7 +491,7 @@ static int mxf_read_primer_pack(void *arg, AVIOContext *pb, int tag, int size, U
         avpriv_request_sample(pb, "Primer pack item length %d", item_len);
         return AVERROR_PATCHWELCOME;
     }
-    if (item_num > 65536) {
+    if (item_num > 65536 || item_num < 0) {
         av_log(mxf->fc, AV_LOG_ERROR, "item_num %d is too large\n", item_num);
         return AVERROR_INVALIDDATA;
     }
@@ -887,6 +887,8 @@ static int mxf_read_index_entry_array(AVIOContext *pb, MXFIndexTableSegment *seg
     segment->nb_index_entries = avio_rb32(pb);
 
     length = avio_rb32(pb);
+    if(segment->nb_index_entries && length < 11)
+        return AVERROR_INVALIDDATA;
 
     if (!(segment->temporal_offset_entries=av_calloc(segment->nb_index_entries, sizeof(*segment->temporal_offset_entries))) ||
         !(segment->flag_entries          = av_calloc(segment->nb_index_entries, sizeof(*segment->flag_entries))) ||
@@ -897,6 +899,8 @@ static int mxf_read_index_entry_array(AVIOContext *pb, MXFIndexTableSegment *seg
     }
 
     for (i = 0; i < segment->nb_index_entries; i++) {
+        if(avio_feof(pb))
+            return AVERROR_INVALIDDATA;
         segment->temporal_offset_entries[i] = avio_r8(pb);
         avio_r8(pb);                                        /* KeyFrameOffset */
         segment->flag_entries[i] = avio_r8(pb);
@@ -1143,6 +1147,15 @@ static const MXFCodecUL mxf_intra_only_picture_essence_coding_uls[] = {
     { { 0x06,0x0e,0x2b,0x34,0x04,0x01,0x01,0x0A,0x04,0x01,0x02,0x02,0x01,0x32,0x00,0x00 }, 14,       AV_CODEC_ID_H264 }, /* H.264/MPEG-4 AVC Intra Profiles */
     { { 0x06,0x0e,0x2b,0x34,0x04,0x01,0x01,0x07,0x04,0x01,0x02,0x02,0x03,0x01,0x01,0x00 }, 14,   AV_CODEC_ID_JPEG2000 }, /* JPEG2000 Codestream */
     { { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 },  0,       AV_CODEC_ID_NONE },
+};
+
+/* actual coded width for AVC-Intra to allow selecting correct SPS/PPS */
+static const MXFCodecUL mxf_intra_only_picture_coded_width[] = {
+    { { 0x06,0x0e,0x2b,0x34,0x04,0x01,0x01,0x0A,0x04,0x01,0x02,0x02,0x01,0x32,0x21,0x01 }, 16, 1440 },
+    { { 0x06,0x0e,0x2b,0x34,0x04,0x01,0x01,0x0A,0x04,0x01,0x02,0x02,0x01,0x32,0x21,0x02 }, 16, 1440 },
+    { { 0x06,0x0e,0x2b,0x34,0x04,0x01,0x01,0x0A,0x04,0x01,0x02,0x02,0x01,0x32,0x21,0x03 }, 16, 1440 },
+    { { 0x06,0x0e,0x2b,0x34,0x04,0x01,0x01,0x0A,0x04,0x01,0x02,0x02,0x01,0x32,0x21,0x04 }, 16, 1440 },
+    { { 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 },  0,    0 },
 };
 
 static const MXFCodecUL mxf_sound_essence_container_uls[] = {
@@ -2128,6 +2141,10 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
                 memcpy(st->codec->extradata, descriptor->extradata, descriptor->extradata_size);
             }
         } else if (st->codec->codec_id == AV_CODEC_ID_H264) {
+            int coded_width = mxf_get_codec_ul(mxf_intra_only_picture_coded_width,
+                                               &descriptor->essence_codec_ul)->id;
+            if (coded_width)
+                st->codec->width = coded_width;
             ret = ff_generate_avci_extradata(st);
             if (ret < 0)
                 return ret;
@@ -2266,7 +2283,6 @@ static const MXFMetadataReadTableEntry mxf_metadata_read_table[] = {
     { { 0x06,0x0e,0x2b,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x42,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* Generic Sound */
     { { 0x06,0x0e,0x2b,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x28,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* CDCI */
     { { 0x06,0x0e,0x2b,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x29,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* RGBA */
-    { { 0x06,0x0e,0x2b,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x51,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* MPEG 2 Video */
     { { 0x06,0x0e,0x2b,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x48,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* Wave */
     { { 0x06,0x0e,0x2b,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x47,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* AES3 */
     { { 0x06,0x0e,0x2b,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x51,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* MPEG2VideoDescriptor */
@@ -2775,13 +2791,13 @@ static int mxf_read_header(AVFormatContext *s)
                 if ((ret = mxf_parse_klv(mxf, klv, metadata->read, metadata->ctx_size, metadata->type)) < 0)
                     goto fail;
                 break;
-            } else {
-                av_log(s, AV_LOG_VERBOSE, "Dark key " PRIxUID "\n",
-                       UID_ARG(klv.key));
             }
         }
-        if (!metadata->read)
+        if (!metadata->read) {
+            av_log(s, AV_LOG_VERBOSE, "Dark key " PRIxUID "\n",
+                            UID_ARG(klv.key));
             avio_skip(s->pb, klv.length);
+        }
     }
     /* FIXME avoid seek */
     if (!essence_offset)  {
@@ -2967,7 +2983,7 @@ static int mxf_read_packet_old(AVFormatContext *s, AVPacket *pkt)
                 /* if this check is hit then it's possible OPAtom was treated as OP1a
                  * truncate the packet since it's probably very large (>2 GiB is common) */
                 avpriv_request_sample(s,
-                                      "OPAtom misinterpreted as OP1a?"
+                                      "OPAtom misinterpreted as OP1a? "
                                       "KLV for edit unit %i extending into "
                                       "next edit unit",
                                       mxf->current_edit_unit);
@@ -3181,6 +3197,16 @@ static int mxf_read_seek(AVFormatContext *s, int stream_index, int64_t sample_ti
         sample_time = FFMAX(sample_time, 0);
 
         if (t->fake_index) {
+            /* The first frames may not be keyframes in presentation order, so
+             * we have to advance the target to be able to find the first
+             * keyframe backwards... */
+            if (!(flags & AVSEEK_FLAG_ANY) &&
+                (flags & AVSEEK_FLAG_BACKWARD) &&
+                t->ptses[0] != AV_NOPTS_VALUE &&
+                sample_time < t->ptses[0] &&
+                (t->fake_index[t->ptses[0]].flags & AVINDEX_KEYFRAME))
+                sample_time = t->ptses[0];
+
             /* behave as if we have a proper index */
             if ((sample_time = ff_index_search_timestamp(t->fake_index, t->nb_ptses, sample_time, flags)) < 0)
                 return sample_time;

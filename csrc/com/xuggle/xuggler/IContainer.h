@@ -637,7 +637,16 @@ namespace com { namespace xuggle { namespace xuggler
       FLAG_IGNDTS=0x0008,
       FLAG_NOFILLIN=0x0010,
       FLAG_NOPARSE=0x0020,
-      FLAG_RTP_HINT=0x0040
+      FLAG_NOBUFFER=0x0040,
+      FLAG_CUSTOM_IO=0x0080,
+      FLAG_DISCARD_CORRUPT=0x0100,
+      FLAG_FLUSH_PACKETS=0x0200,
+      FLAG_BITEXACT=0x0400,
+      FLAG_MP4A_LATM=0x8000,
+      FLAG_SORT_DTS=0x10000,
+      FLAG_PRIV_OPT=0x20000, 
+      FLAG_KEEP_SIDE_DATA=0x40000, 
+      FLAG_FAST_SEEK=0x80000
     } Flags;
     
     /**

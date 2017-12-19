@@ -453,9 +453,7 @@ namespace com { namespace xuggle { namespace xuggler {
       
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
-      
-      retval = av_get_int(aContext, aName, 0);
-
+      av_opt_get_int(aContext, aName, 0, &retval);
     }
     catch (std::exception &e)
     {
@@ -476,8 +474,8 @@ namespace com { namespace xuggle { namespace xuggler {
       
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
-      
-      AVRational value = av_get_q(aContext, aName, 0);
+      AVRational value;
+      av_opt_get_q(aContext, aName, 0, &value);
       retval = IRational::make(value.num, value.den);
     }
     catch (std::exception &e)

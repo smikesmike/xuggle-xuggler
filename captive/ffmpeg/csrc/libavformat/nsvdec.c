@@ -350,8 +350,11 @@ static int nsv_parse_NSVf_header(AVFormatContext *s)
         if (!nsv->nsvs_file_offset)
             return AVERROR(ENOMEM);
 
-        for(i=0;i<table_entries_used;i++)
+        for(i=0;i<table_entries_used;i++) {
+            if (avio_feof(pb))
+                return AVERROR_INVALIDDATA;
             nsv->nsvs_file_offset[i] = avio_rl32(pb) + size;
+        }
 
         if(table_entries > table_entries_used &&
            avio_rl32(pb) == MKTAG('T','O','C','2')) {
@@ -713,9 +716,9 @@ static int nsv_read_close(AVFormatContext *s)
     av_freep(&nsv->nsvs_file_offset);
     av_freep(&nsv->nsvs_timestamps);
     if (nsv->ahead[0].data)
-        av_free_packet(&nsv->ahead[0]);
+        av_packet_unref(&nsv->ahead[0]);
     if (nsv->ahead[1].data)
-        av_free_packet(&nsv->ahead[1]);
+        av_packet_unref(&nsv->ahead[1]);
     return 0;
 }
 

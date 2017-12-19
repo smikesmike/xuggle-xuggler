@@ -118,8 +118,8 @@ typedef struct ASFContext {
 } ASFContext;
 
 static const AVOption options[] = {
-    { "no_resync_search", "Don't try to resynchronize by looking for a certain optional start code", offsetof(ASFContext, no_resync_search), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
-    { "export_xmp", "Export full XMP metadata", offsetof(ASFContext, export_xmp), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
+    { "no_resync_search", "Don't try to resynchronize by looking for a certain optional start code", offsetof(ASFContext, no_resync_search), AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
+    { "export_xmp", "Export full XMP metadata", offsetof(ASFContext, export_xmp), AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
     { NULL },
 };
 
@@ -298,7 +298,7 @@ static int asf_read_picture(AVFormatContext *s, int len)
 
 fail:
     av_freep(&desc);
-    av_free_packet(&pkt);
+    av_packet_unref(&pkt);
     return ret;
 }
 
@@ -749,12 +749,14 @@ static int asf_read_marker(AVFormatContext *s, int64_t size)
     count = avio_rl32(pb);    // markers count
     avio_rl16(pb);            // reserved 2 bytes
     name_len = avio_rl16(pb); // name length
-    for (i = 0; i < name_len; i++)
-        avio_r8(pb); // skip the name
+    avio_skip(pb, name_len);
 
     for (i = 0; i < count; i++) {
         int64_t pres_time;
         int name_len;
+
+        if (avio_feof(pb))
+            return AVERROR_INVALIDDATA;
 
         avio_rl64(pb);             // offset, 8 bytes
         pres_time = avio_rl64(pb); // presentation time
@@ -852,7 +854,7 @@ static int asf_read_header(AVFormatContext *s)
                     if ((ret = av_get_packet(pb, &pkt, len)) < 0)
                         return ret;
                     av_hex_dump_log(s, AV_LOG_DEBUG, pkt.data, pkt.size);
-                    av_free_packet(&pkt);
+                    av_packet_unref(&pkt);
                     len= avio_rl32(pb);
                     get_tag(s, "ASF_Protection_Type", -1, len, 32);
                     len= avio_rl32(pb);
@@ -1288,7 +1290,7 @@ static int asf_parse_packet(AVFormatContext *s, AVIOContext *pb, AVPacket *pkt)
                        "freeing incomplete packet size %d, new %d\n",
                        asf_st->pkt.size, asf_st->packet_obj_size);
                 asf_st->frag_offset = 0;
-                av_free_packet(&asf_st->pkt);
+                av_packet_unref(&asf_st->pkt);
             }
             /* new packet */
             if ((ret = av_new_packet(&asf_st->pkt, asf_st->packet_obj_size)) < 0)
@@ -1379,7 +1381,7 @@ static int asf_parse_packet(AVFormatContext *s, AVIOContext *pb, AVPacket *pkt)
                 if (i == asf_st->pkt.size) {
                     av_log(s, AV_LOG_DEBUG, "discarding ms fart\n");
                     asf_st->frag_offset = 0;
-                    av_free_packet(&asf_st->pkt);
+                    av_packet_unref(&asf_st->pkt);
                     continue;
                 }
             }
@@ -1420,11 +1422,6 @@ static int asf_parse_packet(AVFormatContext *s, AVIOContext *pb, AVPacket *pkt)
             }
             asf_st->frag_offset         = 0;
             *pkt                        = asf_st->pkt;
-#if FF_API_DESTRUCT_PACKET
-FF_DISABLE_DEPRECATION_WARNINGS
-            asf_st->pkt.destruct        = NULL;
-FF_ENABLE_DEPRECATION_WARNINGS
-#endif
             asf_st->pkt.buf             = 0;
             asf_st->pkt.size            = 0;
             asf_st->pkt.data            = 0;
@@ -1481,7 +1478,7 @@ static void asf_reset_header(AVFormatContext *s)
 
     for (i = 0; i < 128; i++) {
         asf_st = &asf->streams[i];
-        av_free_packet(&asf_st->pkt);
+        av_packet_unref(&asf_st->pkt);
         asf_st->packet_obj_size = 0;
         asf_st->frag_offset = 0;
         asf_st->seq         = 0;
@@ -1543,7 +1540,6 @@ static int64_t asf_read_pts(AVFormatContext *s, int stream_index,
 
         pts = pkt->dts;
 
-        av_free_packet(pkt);
         if (pkt->flags & AV_PKT_FLAG_KEY) {
             i = pkt->stream_index;
 
@@ -1557,9 +1553,12 @@ static int64_t asf_read_pts(AVFormatContext *s, int stream_index,
                                pos - start_pos[i] + 1, AVINDEX_KEYFRAME);
             start_pos[i] = asf_st->packet_pos + 1;
 
-            if (pkt->stream_index == stream_index)
+            if (pkt->stream_index == stream_index) {
+                av_packet_unref(pkt);
                 break;
+            }
         }
+        av_packet_unref(pkt);
     }
 
     *ppos = pos;
@@ -1610,6 +1609,11 @@ static int asf_build_simple_index(AVFormatContext *s, int stream_index)
             int pktct         = avio_rl16(s->pb);
             int64_t pos       = s->internal->data_offset + s->packet_size * (int64_t)pktnum;
             int64_t index_pts = FFMAX(av_rescale(itime, i, 10000) - asf->hdr.preroll, 0);
+
+            if (avio_feof(s->pb)) {
+                ret = AVERROR_INVALIDDATA;
+                goto end;
+            }
 
             if (pos != last_pos) {
                 av_log(s, AV_LOG_DEBUG, "pktnum:%d, pktct:%d  pts: %"PRId64"\n",

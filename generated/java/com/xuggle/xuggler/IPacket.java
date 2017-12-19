@@ -227,14 +227,6 @@ public class IPacket extends IMediaData {
     XugglerJNI.IPacket_setPosition(swigCPtr, this, position);
   }
 
-  public long getConvergenceDuration() {
-    return XugglerJNI.IPacket_getConvergenceDuration(swigCPtr, this);
-  }
-
-  public void setConvergenceDuration(long duration) {
-    XugglerJNI.IPacket_setConvergenceDuration(swigCPtr, this, duration);
-  }
-
   public static IPacket make(IPacket packet, boolean copyData) {
     long cPtr = XugglerJNI.IPacket_make__SWIG_2(IPacket.getCPtr(packet), packet, copyData);
     return (cPtr == 0) ? null : new IPacket(cPtr, false);

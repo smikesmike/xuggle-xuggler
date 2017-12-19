@@ -27,16 +27,168 @@
 #include <com/xuggle/xuggler/IAudioSamples.h>
 
 #ifndef LIBAVCODEC_VERSION_MAJOR
-#define LIBAVCODEC_VERSION_MAJOR 56
+#define LIBAVCODEC_VERSION_MAJOR 57
 #endif // ! LIBAVCODEC_VERSION_MAJOR
-#ifndef FF_API_XVMC
-#define FF_API_XVMC (LIBAVCODEC_VERSION_MAJOR < 57)
+
+#ifndef FF_API_VIMA_DECODER
+#define FF_API_VIMA_DECODER     (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_AUDIO_CONVERT
+#define FF_API_AUDIO_CONVERT     (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_AVCODEC_RESAMPLE
+#define FF_API_AVCODEC_RESAMPLE  FF_API_AUDIO_CONVERT
+#endif
+#ifndef FF_API_GETCHROMA
+#define FF_API_GETCHROMA         (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_MISSING_SAMPLE
+#define FF_API_MISSING_SAMPLE    (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_LOWRES
+#define FF_API_LOWRES            (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_CAP_VDPAU
+#define FF_API_CAP_VDPAU         (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_BUFS_VDPAU
+#define FF_API_BUFS_VDPAU        (LIBAVCODEC_VERSION_MAJOR < 58)
 #endif
 #ifndef FF_API_VOXWARE
-#define FF_API_VOXWARE (LIBAVCODEC_VERSION_MAJOR < 57)
+#define FF_API_VOXWARE           (LIBAVCODEC_VERSION_MAJOR < 58)
 #endif
-#ifndef FF_API_VIMA_DECODER
-#define FF_API_VIMA_DECODER (LIBAVCODEC_VERSION_MAJOR < 57)
+#ifndef FF_API_SET_DIMENSIONS
+#define FF_API_SET_DIMENSIONS    (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_DEBUG_MV
+#define FF_API_DEBUG_MV          (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_AC_VLC
+#define FF_API_AC_VLC            (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_OLD_MSMPEG4
+#define FF_API_OLD_MSMPEG4       (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_ASPECT_EXTENDED
+#define FF_API_ASPECT_EXTENDED   (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_ARCH_ALPHA
+#define FF_API_ARCH_ALPHA        (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_XVMC
+#define FF_API_XVMC              (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_ERROR_RATE
+#define FF_API_ERROR_RATE        (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_QSCALE_TYPE
+#define FF_API_QSCALE_TYPE       (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_MB_TYPE
+#define FF_API_MB_TYPE           (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_MAX_BFRAMES
+#define FF_API_MAX_BFRAMES       (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_NEG_LINESIZES
+#define FF_API_NEG_LINESIZES     (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_EMU_EDGE
+#define FF_API_EMU_EDGE          (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_ARCH_SH4
+#define FF_API_ARCH_SH4          (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_ARCH_SPARC
+#define FF_API_ARCH_SPARC        (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_UNUSED_MEMBERS
+#define FF_API_UNUSED_MEMBERS    (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_IDCT_XVIDMMX
+#define FF_API_IDCT_XVIDMMX      (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_INPUT_PRESERVED
+#define FF_API_INPUT_PRESERVED   (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_NORMALIZE_AQP
+#define FF_API_NORMALIZE_AQP     (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_GMC
+#define FF_API_GMC               (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_MV0
+#define FF_API_MV0               (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_CODEC_NAME
+#define FF_API_CODEC_NAME        (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_AFD
+#define FF_API_AFD               (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_VISMV
+/* XXX: don't forget to drop the -vismv documentation */
+#define FF_API_VISMV             (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_AUDIOENC_DELAY
+#define FF_API_AUDIOENC_DELAY    (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_VAAPI_CONTEXT
+#define FF_API_VAAPI_CONTEXT     (LIBAVCODEC_VERSION_MAJOR < 58)
+#endif
+#ifndef FF_API_AVCTX_TIMEBASE
+#define FF_API_AVCTX_TIMEBASE    (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_MPV_OPT
+#define FF_API_MPV_OPT           (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_STREAM_CODEC_TAG
+#define FF_API_STREAM_CODEC_TAG  (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_QUANT_BIAS
+#define FF_API_QUANT_BIAS        (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_RC_STRATEGY
+#define FF_API_RC_STRATEGY       (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_CODED_FRAME
+#define FF_API_CODED_FRAME       (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_MOTION_EST
+#define FF_API_MOTION_EST        (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_WITHOUT_PREFIX
+#define FF_API_WITHOUT_PREFIX    (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_SIDEDATA_ONLY_PKT
+#define FF_API_SIDEDATA_ONLY_PKT (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_VDPAU_PROFILE
+#define FF_API_VDPAU_PROFILE     (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_CONVERGENCE_DURATION
+#define FF_API_CONVERGENCE_DURATION (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_AVPICTURE
+#define FF_API_AVPICTURE         (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_AVPACKET_OLD_API
+#define FF_API_AVPACKET_OLD_API (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_RTP_CALLBACK
+#define FF_API_RTP_CALLBACK      (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_VBV_DELAY
+#define FF_API_VBV_DELAY         (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_CODER_TYPE
+#define FF_API_CODER_TYPE        (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_STAT_BITS
+#define FF_API_STAT_BITS         (LIBAVCODEC_VERSION_MAJOR < 59)
+#endif
+#ifndef FF_API_PRIVATE_OPT
+#define FF_API_PRIVATE_OPT      (LIBAVCODEC_VERSION_MAJOR < 59)
 #endif
 
 namespace com
@@ -63,7 +215,7 @@ public:
    */
   typedef enum ID
   {
-   AV_CODEC_ID_NONE,
+    AV_CODEC_ID_NONE,
 
     /* video codecs */
     AV_CODEC_ID_MPEG1VIDEO,
@@ -205,7 +357,7 @@ public:
     AV_CODEC_ID_ANM,
     AV_CODEC_ID_BINKVIDEO,
     AV_CODEC_ID_IFF_ILBM,
-    AV_CODEC_ID_IFF_BYTERUN1,
+#define AV_CODEC_ID_IFF_BYTERUN1 AV_CODEC_ID_IFF_ILBM
     AV_CODEC_ID_KGV1,
     AV_CODEC_ID_YOP,
     AV_CODEC_ID_VP8,
@@ -238,56 +390,48 @@ public:
     AV_CODEC_ID_MSS2,
     AV_CODEC_ID_VP9,
     AV_CODEC_ID_AIC,
-    AV_CODEC_ID_ESCAPE130_DEPRECATED,
-    AV_CODEC_ID_G2M_DEPRECATED,
-    AV_CODEC_ID_WEBP_DEPRECATED,
+    AV_CODEC_ID_ESCAPE130,
+    AV_CODEC_ID_G2M,
+    AV_CODEC_ID_WEBP,
     AV_CODEC_ID_HNM4_VIDEO,
-    AV_CODEC_ID_HEVC_DEPRECATED,
+    AV_CODEC_ID_HEVC,
+#define AV_CODEC_ID_H265 AV_CODEC_ID_HEVC
     AV_CODEC_ID_FIC,
     AV_CODEC_ID_ALIAS_PIX,
-    AV_CODEC_ID_BRENDER_PIX_DEPRECATED,
-    AV_CODEC_ID_PAF_VIDEO_DEPRECATED,
-    AV_CODEC_ID_EXR_DEPRECATED,
-    AV_CODEC_ID_VP7_DEPRECATED,
-    AV_CODEC_ID_SANM_DEPRECATED,
-    AV_CODEC_ID_SGIRLE_DEPRECATED,
-    AV_CODEC_ID_MVC1_DEPRECATED,
-    AV_CODEC_ID_MVC2_DEPRECATED,
+    AV_CODEC_ID_BRENDER_PIX,
+    AV_CODEC_ID_PAF_VIDEO,
+    AV_CODEC_ID_EXR,
+    AV_CODEC_ID_VP7,
+    AV_CODEC_ID_SANM,
+    AV_CODEC_ID_SGIRLE,
+    AV_CODEC_ID_MVC1,
+    AV_CODEC_ID_MVC2,
     AV_CODEC_ID_HQX,
     AV_CODEC_ID_TDSC,
     AV_CODEC_ID_HQ_HQA,
     AV_CODEC_ID_HAP,
     AV_CODEC_ID_DDS,
+    AV_CODEC_ID_DXV,
+    AV_CODEC_ID_SCREENPRESSO,
+    AV_CODEC_ID_RSCC,
 
-    AV_CODEC_ID_BRENDER_PIX= MKBETAG('B','P','I','X'),
-    AV_CODEC_ID_Y41P       = MKBETAG('Y','4','1','P'),
-    AV_CODEC_ID_ESCAPE130  = MKBETAG('E','1','3','0'),
-    AV_CODEC_ID_EXR        = MKBETAG('0','E','X','R'),
-    AV_CODEC_ID_AVRP       = MKBETAG('A','V','R','P'),
-
-    AV_CODEC_ID_012V       = MKBETAG('0','1','2','V'),
-    AV_CODEC_ID_G2M        = MKBETAG( 0 ,'G','2','M'),
-    AV_CODEC_ID_AVUI       = MKBETAG('A','V','U','I'),
-    AV_CODEC_ID_AYUV       = MKBETAG('A','Y','U','V'),
-    AV_CODEC_ID_TARGA_Y216 = MKBETAG('T','2','1','6'),
-    AV_CODEC_ID_V308       = MKBETAG('V','3','0','8'),
-    AV_CODEC_ID_V408       = MKBETAG('V','4','0','8'),
-    AV_CODEC_ID_YUV4       = MKBETAG('Y','U','V','4'),
-    AV_CODEC_ID_SANM       = MKBETAG('S','A','N','M'),
-    AV_CODEC_ID_PAF_VIDEO  = MKBETAG('P','A','F','V'),
-    AV_CODEC_ID_AVRN       = MKBETAG('A','V','R','n'),
-    AV_CODEC_ID_CPIA       = MKBETAG('C','P','I','A'),
-    AV_CODEC_ID_XFACE      = MKBETAG('X','F','A','C'),
-    AV_CODEC_ID_SGIRLE     = MKBETAG('S','G','I','R'),
-    AV_CODEC_ID_MVC1       = MKBETAG('M','V','C','1'),
-    AV_CODEC_ID_MVC2       = MKBETAG('M','V','C','2'),
-    AV_CODEC_ID_SNOW       = MKBETAG('S','N','O','W'),
-    AV_CODEC_ID_WEBP       = MKBETAG('W','E','B','P'),
-    AV_CODEC_ID_SMVJPEG    = MKBETAG('S','M','V','J'),
-    AV_CODEC_ID_HEVC       = MKBETAG('H','2','6','5'),
-#define AV_CODEC_ID_H265 AV_CODEC_ID_HEVC
-    AV_CODEC_ID_VP7        = MKBETAG('V','P','7','0'),
-    AV_CODEC_ID_APNG       = MKBETAG('A','P','N','G'),
+    AV_CODEC_ID_Y41P = 0x8000,
+    AV_CODEC_ID_AVRP,
+    AV_CODEC_ID_012V,
+    AV_CODEC_ID_AVUI,
+    AV_CODEC_ID_AYUV,
+    AV_CODEC_ID_TARGA_Y216,
+    AV_CODEC_ID_V308,
+    AV_CODEC_ID_V408,
+    AV_CODEC_ID_YUV4,
+    AV_CODEC_ID_AVRN,
+    AV_CODEC_ID_CPIA,
+    AV_CODEC_ID_XFACE,
+    AV_CODEC_ID_SNOW,
+    AV_CODEC_ID_SMVJPEG,
+    AV_CODEC_ID_APNG,
+    AV_CODEC_ID_DAALA,
+    AV_CODEC_ID_CFHD,
 
     /* various PCM "codecs" */
     AV_CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
@@ -319,12 +463,12 @@ public:
     AV_CODEC_ID_PCM_LXF,
     AV_CODEC_ID_S302M,
     AV_CODEC_ID_PCM_S8_PLANAR,
-    AV_CODEC_ID_PCM_S24LE_PLANAR_DEPRECATED,
-    AV_CODEC_ID_PCM_S32LE_PLANAR_DEPRECATED,
-    AV_CODEC_ID_PCM_S16BE_PLANAR_DEPRECATED,
-    AV_CODEC_ID_PCM_S24LE_PLANAR = MKBETAG(24,'P','S','P'),
-    AV_CODEC_ID_PCM_S32LE_PLANAR = MKBETAG(32,'P','S','P'),
-    AV_CODEC_ID_PCM_S16BE_PLANAR = MKBETAG('P','S','P',16),
+    AV_CODEC_ID_PCM_S24LE_PLANAR,
+    AV_CODEC_ID_PCM_S32LE_PLANAR,
+    AV_CODEC_ID_PCM_S16BE_PLANAR,
+    /* new PCM "codecs" should be added right below this line starting with
+     * an explicit value of for example 0x10800
+     */
 
     /* various ADPCM codecs */
     AV_CODEC_ID_ADPCM_IMA_QT = 0x11000,
@@ -357,17 +501,19 @@ public:
     AV_CODEC_ID_ADPCM_IMA_ISS,
     AV_CODEC_ID_ADPCM_G722,
     AV_CODEC_ID_ADPCM_IMA_APC,
-    AV_CODEC_ID_ADPCM_VIMA_DEPRECATED,
-    AV_CODEC_ID_ADPCM_VIMA = MKBETAG('V','I','M','A'),
+    AV_CODEC_ID_ADPCM_VIMA,
 #if FF_API_VIMA_DECODER
-    AV_CODEC_ID_VIMA       = MKBETAG('V','I','M','A'),
+    AV_CODEC_ID_VIMA = AV_CODEC_ID_ADPCM_VIMA,
 #endif
-    AV_CODEC_ID_ADPCM_AFC  = MKBETAG('A','F','C',' '),
-    AV_CODEC_ID_ADPCM_IMA_OKI = MKBETAG('O','K','I',' '),
-    AV_CODEC_ID_ADPCM_DTK  = MKBETAG('D','T','K',' '),
-    AV_CODEC_ID_ADPCM_IMA_RAD = MKBETAG('R','A','D',' '),
-    AV_CODEC_ID_ADPCM_G726LE = MKBETAG('6','2','7','G'),
-    AV_CODEC_ID_ADPCM_THP_LE = MKBETAG('T','H','P','L'),
+
+    AV_CODEC_ID_ADPCM_AFC = 0x11800,
+    AV_CODEC_ID_ADPCM_IMA_OKI,
+    AV_CODEC_ID_ADPCM_DTK,
+    AV_CODEC_ID_ADPCM_IMA_RAD,
+    AV_CODEC_ID_ADPCM_G726LE,
+    AV_CODEC_ID_ADPCM_THP_LE,
+    AV_CODEC_ID_ADPCM_PSX,
+    AV_CODEC_ID_ADPCM_AICA,
 
     /* AMR */
     AV_CODEC_ID_AMR_NB = 0x12000,
@@ -382,6 +528,8 @@ public:
     AV_CODEC_ID_INTERPLAY_DPCM,
     AV_CODEC_ID_XAN_DPCM,
     AV_CODEC_ID_SOL_DPCM,
+
+    AV_CODEC_ID_SDX2_DPCM = 0x14800,
 
     /* audio codecs */
     AV_CODEC_ID_MP2 = 0x15000,
@@ -447,26 +595,27 @@ public:
     AV_CODEC_ID_RALF,
     AV_CODEC_ID_IAC,
     AV_CODEC_ID_ILBC,
-    AV_CODEC_ID_OPUS_DEPRECATED,
+    AV_CODEC_ID_OPUS,
     AV_CODEC_ID_COMFORT_NOISE,
-    AV_CODEC_ID_TAK_DEPRECATED,
+    AV_CODEC_ID_TAK,
     AV_CODEC_ID_METASOUND,
-    AV_CODEC_ID_PAF_AUDIO_DEPRECATED,
+    AV_CODEC_ID_PAF_AUDIO,
     AV_CODEC_ID_ON2AVC,
     AV_CODEC_ID_DSS_SP,
-    AV_CODEC_ID_FFWAVESYNTH = MKBETAG('F','F','W','S'),
-    AV_CODEC_ID_SONIC       = MKBETAG('S','O','N','C'),
-    AV_CODEC_ID_SONIC_LS    = MKBETAG('S','O','N','L'),
-    AV_CODEC_ID_PAF_AUDIO   = MKBETAG('P','A','F','A'),
-    AV_CODEC_ID_OPUS        = MKBETAG('O','P','U','S'),
-    AV_CODEC_ID_TAK         = MKBETAG('t','B','a','K'),
-    AV_CODEC_ID_EVRC        = MKBETAG('s','e','v','c'),
-    AV_CODEC_ID_SMV         = MKBETAG('s','s','m','v'),
-    AV_CODEC_ID_DSD_LSBF    = MKBETAG('D','S','D','L'),
-    AV_CODEC_ID_DSD_MSBF    = MKBETAG('D','S','D','M'),
-    AV_CODEC_ID_DSD_LSBF_PLANAR = MKBETAG('D','S','D','1'),
-    AV_CODEC_ID_DSD_MSBF_PLANAR = MKBETAG('D','S','D','8'),
-    AV_CODEC_ID_4GV         = MKBETAG('s','4','g','v'),
+
+    AV_CODEC_ID_FFWAVESYNTH = 0x15800,
+    AV_CODEC_ID_SONIC,
+    AV_CODEC_ID_SONIC_LS,
+    AV_CODEC_ID_EVRC,
+    AV_CODEC_ID_SMV,
+    AV_CODEC_ID_DSD_LSBF,
+    AV_CODEC_ID_DSD_MSBF,
+    AV_CODEC_ID_DSD_LSBF_PLANAR,
+    AV_CODEC_ID_DSD_MSBF_PLANAR,
+    AV_CODEC_ID_4GV,
+    AV_CODEC_ID_INTERPLAY_ACM,
+    AV_CODEC_ID_XMA1,
+    AV_CODEC_ID_XMA2,
 
     /* subtitle codecs */
     AV_CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
@@ -479,34 +628,35 @@ public:
     AV_CODEC_ID_HDMV_PGS_SUBTITLE,
     AV_CODEC_ID_DVB_TELETEXT,
     AV_CODEC_ID_SRT,
-    AV_CODEC_ID_MICRODVD   = MKBETAG('m','D','V','D'),
-    AV_CODEC_ID_EIA_608    = MKBETAG('c','6','0','8'),
-    AV_CODEC_ID_JACOSUB    = MKBETAG('J','S','U','B'),
-    AV_CODEC_ID_SAMI       = MKBETAG('S','A','M','I'),
-    AV_CODEC_ID_REALTEXT   = MKBETAG('R','T','X','T'),
-    AV_CODEC_ID_STL        = MKBETAG('S','p','T','L'),
-    AV_CODEC_ID_SUBVIEWER1 = MKBETAG('S','b','V','1'),
-    AV_CODEC_ID_SUBVIEWER  = MKBETAG('S','u','b','V'),
-    AV_CODEC_ID_SUBRIP     = MKBETAG('S','R','i','p'),
-    AV_CODEC_ID_WEBVTT     = MKBETAG('W','V','T','T'),
-    AV_CODEC_ID_MPL2       = MKBETAG('M','P','L','2'),
-    AV_CODEC_ID_VPLAYER    = MKBETAG('V','P','l','r'),
-    AV_CODEC_ID_PJS        = MKBETAG('P','h','J','S'),
-    AV_CODEC_ID_ASS        = MKBETAG('A','S','S',' '),  ///< ASS as defined in Matroska
-    AV_CODEC_ID_HDMV_TEXT_SUBTITLE = MKBETAG('B','D','T','X'),
+
+    AV_CODEC_ID_MICRODVD   = 0x17800,
+    AV_CODEC_ID_EIA_608,
+    AV_CODEC_ID_JACOSUB,
+    AV_CODEC_ID_SAMI,
+    AV_CODEC_ID_REALTEXT,
+    AV_CODEC_ID_STL,
+    AV_CODEC_ID_SUBVIEWER1,
+    AV_CODEC_ID_SUBVIEWER,
+    AV_CODEC_ID_SUBRIP,
+    AV_CODEC_ID_WEBVTT,
+    AV_CODEC_ID_MPL2,
+    AV_CODEC_ID_VPLAYER,
+    AV_CODEC_ID_PJS,
+    AV_CODEC_ID_ASS,
+    AV_CODEC_ID_HDMV_TEXT_SUBTITLE,
 
     /* other specific kind of codecs (generally used for attachments) */
     AV_CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.
     AV_CODEC_ID_TTF = 0x18000,
-    AV_CODEC_ID_BINTEXT    = MKBETAG('B','T','X','T'),
-    AV_CODEC_ID_XBIN       = MKBETAG('X','B','I','N'),
-    AV_CODEC_ID_IDF        = MKBETAG( 0 ,'I','D','F'),
-    AV_CODEC_ID_OTF        = MKBETAG( 0 ,'O','T','F'),
-    AV_CODEC_ID_SMPTE_KLV  = MKBETAG('K','L','V','A'),
-    AV_CODEC_ID_DVD_NAV    = MKBETAG('D','N','A','V'),
-    AV_CODEC_ID_TIMED_ID3  = MKBETAG('T','I','D','3'),
-    AV_CODEC_ID_BIN_DATA   = MKBETAG('D','A','T','A'),
 
+    AV_CODEC_ID_BINTEXT    = 0x18800,
+    AV_CODEC_ID_XBIN,
+    AV_CODEC_ID_IDF,
+    AV_CODEC_ID_OTF,
+    AV_CODEC_ID_SMPTE_KLV,
+    AV_CODEC_ID_DVD_NAV,
+    AV_CODEC_ID_TIMED_ID3,
+    AV_CODEC_ID_BIN_DATA,
 
     AV_CODEC_ID_PROBE = 0x19000, ///< codec_id is not known (like AV_CODEC_ID_NONE) but lavf should attempt to identify it
 
@@ -515,7 +665,8 @@ public:
     AV_CODEC_ID_MPEG4SYSTEMS = 0x20001, /**< _FAKE_ codec to indicate a MPEG-4 Systems
                                 * stream (only used by libavformat) */
     AV_CODEC_ID_FFMETADATA = 0x21000,   ///< Dummy codec for streams containing only metadata information.
-
+    AV_CODEC_ID_WRAPPED_AVFRAME = 0x21001, ///< Passthrough codec, AVFrames wrapped in AVPacket
+               
   } ID;
 
   /**
