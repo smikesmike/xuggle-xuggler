@@ -7,6 +7,7 @@
 .#*
 #*#
 *~
+/.dir-locals.el
 
 # Top level excludes
 /Makefile.bak
@@ -30,6 +31,7 @@
 !/test/igetest.c
 !/test/r160test.c
 !/test/fips_algvs.c
+!/test/ssltestlib.c
 
 /test/*.ss
 /test/*.srl
