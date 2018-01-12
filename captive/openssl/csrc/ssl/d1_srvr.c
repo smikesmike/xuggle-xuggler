@@ -131,12 +131,14 @@ static int dtls1_send_hello_verify_request(SSL *s);
 
 static const SSL_METHOD *dtls1_get_server_method(int ver)
 {
-    if (ver == DTLS1_VERSION)
-        return (DTLSv1_server_method());
+    if (ver == DTLS_ANY_VERSION)
+        return DTLS_server_method();
+    else if (ver == DTLS1_VERSION)
+        return DTLSv1_server_method();
     else if (ver == DTLS1_2_VERSION)
-        return (DTLSv1_2_server_method());
+        return DTLSv1_2_server_method();
     else
-        return (NULL);
+        return NULL;
 }
 
 IMPLEMENT_dtls1_meth_func(DTLS1_VERSION,
@@ -145,13 +147,13 @@ IMPLEMENT_dtls1_meth_func(DTLS1_VERSION,
                           ssl_undefined_function,
                           dtls1_get_server_method, DTLSv1_enc_data)
 
-    IMPLEMENT_dtls1_meth_func(DTLS1_2_VERSION,
+IMPLEMENT_dtls1_meth_func(DTLS1_2_VERSION,
                           DTLSv1_2_server_method,
                           dtls1_accept,
                           ssl_undefined_function,
                           dtls1_get_server_method, DTLSv1_2_enc_data)
 
-    IMPLEMENT_dtls1_meth_func(DTLS_ANY_VERSION,
+IMPLEMENT_dtls1_meth_func(DTLS_ANY_VERSION,
                           DTLS_server_method,
                           dtls1_accept,
                           ssl_undefined_function,
@@ -280,9 +282,27 @@ int dtls1_accept(SSL *s)
                         goto end;
                     }
 
-                ssl3_init_finished_mac(s);
+                if (!ssl3_init_finished_mac(s)) {
+                    ret = -1;
+                    s->state = SSL_ST_ERR;
+                    goto end;
+                }
+
                 s->state = SSL3_ST_SR_CLNT_HELLO_A;
                 s->ctx->stats.sess_accept++;
+            } else if (!s->s3->send_connection_binding &&
+                       !(s->options &
+                         SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION)) {
+                /*
+                 * Server attempting to renegotiate with client that doesn't
+                 * support secure renegotiation.
+                 */
+                SSLerr(SSL_F_DTLS1_ACCEPT,
+                       SSL_R_UNSAFE_LEGACY_RENEGOTIATION_DISABLED);
+                ssl3_send_alert(s, SSL3_AL_FATAL, SSL_AD_HANDSHAKE_FAILURE);
+                ret = -1;
+                s->state = SSL_ST_ERR;
+                goto end;
             } else {
                 /*
                  * s->state == SSL_ST_RENEGOTIATE, we will just send a
@@ -298,7 +318,7 @@ int dtls1_accept(SSL *s)
         case SSL3_ST_SW_HELLO_REQ_B:
 
             s->shutdown = 0;
-            dtls1_clear_record_buffer(s);
+            dtls1_clear_sent_buffer(s);
             dtls1_start_timer(s);
             ret = ssl3_send_hello_request(s);
             if (ret <= 0)
@@ -307,7 +327,11 @@ int dtls1_accept(SSL *s)
             s->state = SSL3_ST_SW_FLUSH;
             s->init_num = 0;
 
-            ssl3_init_finished_mac(s);
+            if (!ssl3_init_finished_mac(s)) {
+                ret = -1;
+                s->state = SSL_ST_ERR;
+                goto end;
+            }
             break;
 
         case SSL3_ST_SW_HELLO_REQ_C:
@@ -330,15 +354,6 @@ int dtls1_accept(SSL *s)
                 s->state = SSL3_ST_SW_SRVR_HELLO_A;
 
             s->init_num = 0;
-
-            /*
-             * Reflect ClientHello sequence to remain stateless while
-             * listening
-             */
-            if (listen) {
-                memcpy(s->s3->write_sequence, s->s3->read_sequence,
-                       sizeof(s->s3->write_sequence));
-            }
 
             /* If we're just listening, stop here */
             if (listen && s->state == SSL3_ST_SW_SRVR_HELLO_A) {
@@ -366,7 +381,11 @@ int dtls1_accept(SSL *s)
 
             /* HelloVerifyRequest resets Finished MAC */
             if (s->version != DTLS1_BAD_VER)
-                ssl3_init_finished_mac(s);
+                if (!ssl3_init_finished_mac(s)) {
+                    ret = -1;
+                    s->state = SSL_ST_ERR;
+                    goto end;
+                }
             break;
 
 #ifndef OPENSSL_NO_SCTP
@@ -421,9 +440,13 @@ int dtls1_accept(SSL *s)
                 snprintf((char *)labelbuffer, sizeof(DTLS1_SCTP_AUTH_LABEL),
                          DTLS1_SCTP_AUTH_LABEL);
 
-                SSL_export_keying_material(s, sctpauthkey,
-                                           sizeof(sctpauthkey), labelbuffer,
-                                           sizeof(labelbuffer), NULL, 0, 0);
+                if (SSL_export_keying_material(s, sctpauthkey,
+                        sizeof(sctpauthkey), labelbuffer,
+                        sizeof(labelbuffer), NULL, 0, 0) <= 0) {
+                    ret = -1;
+                    s->state = SSL_ST_ERR;
+                    goto end;
+                }
 
                 BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY,
                          sizeof(sctpauthkey), sctpauthkey);
@@ -635,9 +658,13 @@ int dtls1_accept(SSL *s)
             snprintf((char *)labelbuffer, sizeof(DTLS1_SCTP_AUTH_LABEL),
                      DTLS1_SCTP_AUTH_LABEL);
 
-            SSL_export_keying_material(s, sctpauthkey,
+            if (SSL_export_keying_material(s, sctpauthkey,
                                        sizeof(sctpauthkey), labelbuffer,
-                                       sizeof(labelbuffer), NULL, 0, 0);
+                                       sizeof(labelbuffer), NULL, 0, 0) <= 0) {
+                ret = -1;
+                s->state = SSL_ST_ERR;
+                goto end;
+            }
 
             BIO_ctrl(SSL_get_wbio(s), BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY,
                      sizeof(sctpauthkey), sctpauthkey);
@@ -871,6 +898,7 @@ int dtls1_accept(SSL *s)
             /* next message is server hello */
             s->d1->handshake_write_seq = 0;
             s->d1->next_handshake_write_seq = 0;
+            dtls1_clear_received_buffer(s);
             goto end;
             /* break; */
 
