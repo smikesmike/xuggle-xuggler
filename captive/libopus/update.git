@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This script is here to update the branch to the latest version
-git subtree pull --prefix=captive/libopus/csrc  http://git.xiph.org/opus.git v1.3.1
+git subtree pull --prefix=captive/libopus/csrc  https://git.xiph.org/opus.git v1.3.1
