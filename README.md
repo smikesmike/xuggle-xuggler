@@ -1,3 +1,12 @@
+#Building source
+## prepare `libopus`
+```
+Marcs-MBP:xuggle-xuggler marc$ cd captive/libopus/csrc
+Marcs-MBP:csrc marc$ ./configure --disable-dependency-Marcs-MBP:csrc marc$ tracking   --with-pic   --disable-shared   --enable-sse
+Marcs-MBP:csrc marc$ automake --add-missing
+```
+
+
 ![Build Status](https://travis-ci.org/olivierayache/xuggle-xuggler.svg?branch=CI&sanitize=true)
 
 The aim of this fork is to maintain Xuggler with new version of FFMPEG and to make it work on Android. 
