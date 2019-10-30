@@ -49,6 +49,7 @@ tests/test_opus_api
 tests/test_opus_decode
 tests/test_opus_encode
 tests/test_opus_padding
+tests/test_opus_projection
 celt/arm/armopts.s
 celt/dump_modes/dump_modes
 celt/tests/test_unit_cwrs32
@@ -82,3 +83,7 @@ silk/tests/test_unit_LPC_inv_pred_gain
 src/Debug
 src/Release
 src/x64
+/*[Bb]uild*/
+.vs/
+.vscode/
+CMakeSettings.json
