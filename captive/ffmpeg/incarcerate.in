@@ -69,7 +69,7 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvorbis"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libtheora"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libspeex"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopus"
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopencore-amrnb --enable-libopencore-amrwb"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libvo-amrwbenc"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
 case $HOST_OS in
   *mingw*|*cygwin*)
