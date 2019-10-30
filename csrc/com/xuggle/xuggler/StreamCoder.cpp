@@ -19,6 +19,7 @@
 
 #include <stdexcept>
 #include <cstring>
+#include <string>
 
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/ferry/RefPointer.h>

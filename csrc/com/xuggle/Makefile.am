@@ -55,6 +55,6 @@ libxuggle_la_LDFLAGS+= \
 	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
 else
 libxuggle_la_LDFLAGS+= \
-	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+    -nostdlib -static-libtool-libs -XCClinker -static-libgcc
 endif
 endif
