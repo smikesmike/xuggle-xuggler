@@ -97,10 +97,14 @@ host_triplet = @host@
 @VS_OS_WINDOWS_TRUE@	-XCClinker -lkernel32
 
 @VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@am__append_2 = \
-@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libstdc++
+#@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -static-libgcc
 
 @VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@am__append_3 = \
-@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -static-libstdc++
+@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -L/Users/marc/macports/lib/
+#@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -stdlib=libc++
+#@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -static-libgcc++
+#@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -static-libstdc++
 
 subdir = csrc/com/xuggle
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
