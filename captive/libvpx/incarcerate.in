@@ -78,6 +78,7 @@ fi
 
 # shared support on vpx is limited at best
 VPX_OPTIONS="$VPX_OPTIONS --disable-shared --enable-runtime-cpu-detect"
+VS_DEBUG=1
 
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of libvpx: $VS_DEBUG"
@@ -87,6 +88,8 @@ else
   echo "Creating release version of libvpx: $VS_DEBUG"
 fi
 
+#VPX_OPTIONS=
+VPX_OPTIONS="--enable-pic"
 echo "Configuring VPX with these options: $VPX_OPTIONS"
 CROSS="@VS_CROSS_PREFIX@" \
 LDFLAGS="-L@abs_top_builddir@/stage@libdir@ @LDFLAGS@" \
