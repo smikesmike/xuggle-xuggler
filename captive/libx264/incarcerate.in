@@ -26,6 +26,7 @@ if test "${HOST_TYPE}" = "Mac" ; then
   echo "Forcing debug build on Mac OS X due to text relocation in x264_cabac_encode_decision_asm; remove when x264 fixes that"
   VS_DEBUG=1 
 fi
+VS_DEBUG=1 
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of libx264: $VS_DEBUG"
   X264_OPTIONS="$X264_OPTIONS --disable-asm"
@@ -33,6 +34,7 @@ if test ! "x$VS_DEBUG" = "x"; then
 else
   echo "Creating release version of libx264: $VS_DEBUG"
 fi
+X264_OPTIONS="$X264_OPTIONS --disable-asm"
 
 if test "x$YASM" = "x"; then
 # no assembly for us :(
