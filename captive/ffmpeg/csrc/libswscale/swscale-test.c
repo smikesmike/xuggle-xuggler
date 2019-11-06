@@ -106,7 +106,11 @@ static int doTest(uint8_t *ref[4], int refStride[4], int w, int h,
         for (p = 0; p < 4; p++)
             av_freep(&src[p]);
 
-        av_image_fill_linesizes(srcStride, srcFormat, srcW);
+        res = av_image_fill_linesizes(srcStride, srcFormat, srcW);
+        if (res < 0) {
+            fprintf(stderr, "av_image_fill_linesizes failed\n");
+            goto end;
+        }
         for (p = 0; p < 4; p++) {
             srcStride[p] = FFALIGN(srcStride[p], 16);
             if (srcStride[p])
@@ -134,7 +138,12 @@ static int doTest(uint8_t *ref[4], int refStride[4], int w, int h,
         cur_srcH      = srcH;
     }
 
-    av_image_fill_linesizes(dstStride, dstFormat, dstW);
+    res = av_image_fill_linesizes(dstStride, dstFormat, dstW);
+    if (res < 0) {
+        fprintf(stderr, "av_image_fill_linesizes failed\n");
+        goto end;
+    }
+
     for (i = 0; i < 4; i++) {
         /* Image buffers passed into libswscale can be allocated any way you
          * prefer, as long as they're aligned enough for the architecture, and
@@ -298,10 +307,10 @@ static int fileTest(uint8_t *ref[4], int refStride[4], int w, int h, FILE *fp,
         struct Results r;
         enum AVPixelFormat srcFormat;
         char srcStr[12];
-        int srcW, srcH;
+        int srcW = 0, srcH = 0;
         enum AVPixelFormat dstFormat;
         char dstStr[12];
-        int dstW, dstH;
+        int dstW = 0, dstH = 0;
         int flags;
         int ret;
 
@@ -399,7 +408,7 @@ bad_option:
     for (y = 0; y < H; y++)
         for (x = 0; x < W * 4; x++)
             rgb_data[ x + y * 4 * W] = av_lfg_get(&rand);
-    sws_scale(sws, rgb_src, rgb_stride, 0, H, src, stride);
+    sws_scale(sws, rgb_src, rgb_stride, 0, H / 12, src, stride);
     sws_freeContext(sws);
     av_free(rgb_data);
 

@@ -651,7 +651,7 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (retval >= 0)
         pkt->wrapAVPacket(&packet);
-        av_free_packet(&packet);
+        av_packet_unref(&packet);
 
 //      // Get a pointer to the wrapped packet
 //      packet = pkt->getAVPacket();

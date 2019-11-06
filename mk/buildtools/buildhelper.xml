@@ -412,7 +412,7 @@
     </if>
 
     <echo message="Building Library Version: ${library.version}"/>
-    <condition property="ivy.revision" value="${library.version.major}.${library.version.minor}-SNAPSHOT">
+    <condition property="ivy.revision" value="${library.version.major}.${library.version.minor}">
       <not>
         <isset property="ivy.revision"/>
       </not>

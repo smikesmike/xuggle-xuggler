@@ -19,6 +19,7 @@
 
 #include <stdexcept>
 #include <cstring>
+#include <string>
 
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/ferry/RefPointer.h>
@@ -599,7 +600,7 @@ StreamCoder::setPixelType(IPixelFormat::Type type)
 {
   if (mCodecContext && !mOpened)
   {
-    mCodecContext->pix_fmt = (enum PixelFormat) type;
+    mCodecContext->pix_fmt = (AVPixelFormat) type;
   }
 }
 
@@ -1290,8 +1291,8 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
         }
         else
         {
-          suggestedBufferSize = avpicture_get_size(
-              (PixelFormat) getPixelType(), getWidth(), getHeight());
+          suggestedBufferSize = av_image_get_buffer_size(
+              (AVPixelFormat) getPixelType(), getWidth(), getHeight(), 1);
         }
       }
       VS_ASSERT(suggestedBufferSize> 0, "no buffer size in input frame");
@@ -1411,10 +1412,9 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
             int32_t delay = FFMAX(mCodecContext->has_b_frames,
                 mCodecContext->max_b_frames > 0);
             dts = packet->getAVPacket()->dts;
-            if (mCodecContext->coded_frame
-                && mCodecContext->coded_frame->pts != Global::NO_PTS && dts == Global::NO_PTS && delay <= MAX_REORDER_DELAY)
+            if (packet->getAVPacket()->pts != Global::NO_PTS && dts == Global::NO_PTS && delay <= MAX_REORDER_DELAY)
             {
-              int64_t pts = mCodecContext->coded_frame->pts;
+              int64_t pts = packet->getAVPacket()->pts;
               mPtsBuffer[0] = pts;
               int32_t i;
               // If first time through set others to some 'sensible' defaults.
@@ -1440,8 +1440,7 @@ StreamCoder::encodeVideo(IPacket *pOutPacket, IVideoPicture *pFrame,
               // by one
               dts,
               thisTimeBase.value(),
-              (mCodecContext->coded_frame ? mCodecContext->coded_frame->key_frame
-                  : 0), duration, got_pkt);
+              (packet->getAVPacket()->flags & AV_PKT_FLAG_KEY), duration, got_pkt);
         }
         if (avFrame)
           av_free(avFrame);
@@ -1762,7 +1761,7 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       if (retval>=0 && got_packet){
            packet->wrapAVPacket(&pkt);
            size = packet->getSize();
-           av_free_packet(&pkt);
+           av_packet_unref(&pkt);
        }
 
         VS_LOG_TRACE("Finished %d  %d encodeAudio(%d, %p, %d, %d, %p)",
@@ -1896,11 +1895,10 @@ StreamCoder::setPacketParameters(Packet * packet, int32_t size, int64_t dts,
 
   int64_t pts = dts;
 
-  if (mCodecContext->coded_frame && mCodecContext->coded_frame->pts
-      != Global::NO_PTS)
+  if (packet->getAVPacket()->pts != Global::NO_PTS)
   {
     RefPointer<IRational> coderBase = getTimeBase();
-    pts = timebase->rescale(mCodecContext->coded_frame->pts, coderBase.value());
+    pts = timebase->rescale(packet->getAVPacket()->pts, coderBase.value());
   }
   if (pts == Global::NO_PTS)
     pts = dts;

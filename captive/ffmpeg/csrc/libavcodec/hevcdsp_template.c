@@ -301,10 +301,10 @@ IDCT_DC(32)
 #undef SCALE
 #undef ADD_AND_SCALE
 
-static void FUNC(sao_band_filter_0)(uint8_t *_dst, uint8_t *_src,
-                                    ptrdiff_t stride_dst, ptrdiff_t stride_src,
-                                    int16_t *sao_offset_val, int sao_left_class,
-                                    int width, int height)
+static void FUNC(sao_band_filter)(uint8_t *_dst, uint8_t *_src,
+                                  ptrdiff_t stride_dst, ptrdiff_t stride_src,
+                                  int16_t *sao_offset_val, int sao_left_class,
+                                  int width, int height)
 {
     pixel *dst = (pixel *)_dst;
     pixel *src = (pixel *)_src;
@@ -341,7 +341,7 @@ static void FUNC(sao_edge_filter)(uint8_t *_dst, uint8_t *_src, ptrdiff_t stride
     pixel *src = (pixel *)_src;
     int a_stride, b_stride;
     int x, y;
-    ptrdiff_t stride_src = (2*MAX_PB_SIZE + FF_INPUT_BUFFER_PADDING_SIZE) / sizeof(pixel);
+    ptrdiff_t stride_src = (2*MAX_PB_SIZE + AV_INPUT_BUFFER_PADDING_SIZE) / sizeof(pixel);
     stride_dst /= sizeof(pixel);
 
     a_stride = pos[eo][0][0] + pos[eo][0][1] * stride_src;
@@ -599,7 +599,7 @@ static void FUNC(put_hevc_pel_bi_w_pixels)(uint8_t *_dst, ptrdiff_t _dststride, 
     ox1     = ox1 * (1 << (BIT_DEPTH - 8));
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
-            dst[x] = av_clip_pixel(( (src[x] << (14 - BIT_DEPTH)) * wx1 + src2[x] * wx0 + ((ox0 + ox1 + 1) << log2Wd)) >> (log2Wd + 1));
+            dst[x] = av_clip_pixel(( (src[x] << (14 - BIT_DEPTH)) * wx1 + src2[x] * wx0 + (ox0 + ox1 + 1) * (1 << log2Wd)) >> (log2Wd + 1));
         }
         src  += srcstride;
         dst  += dststride;
@@ -1361,7 +1361,7 @@ static void FUNC(put_hevc_epel_bi_w_h)(uint8_t *_dst, ptrdiff_t _dststride, uint
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++)
             dst[x] = av_clip_pixel(((EPEL_FILTER(src, 1) >> (BIT_DEPTH - 8)) * wx1 + src2[x] * wx0 +
-                                    ((ox0 + ox1 + 1) << log2Wd)) >> (log2Wd + 1));
+                                    ((ox0 + ox1 + 1) * (1 << log2Wd))) >> (log2Wd + 1));
         src  += srcstride;
         dst  += dststride;
         src2 += MAX_PB_SIZE;
@@ -1413,7 +1413,7 @@ static void FUNC(put_hevc_epel_bi_w_v)(uint8_t *_dst, ptrdiff_t _dststride, uint
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++)
             dst[x] = av_clip_pixel(((EPEL_FILTER(src, srcstride) >> (BIT_DEPTH - 8)) * wx1 + src2[x] * wx0 +
-                                    ((ox0 + ox1 + 1) << log2Wd)) >> (log2Wd + 1));
+                                    ((ox0 + ox1 + 1) * (1 << log2Wd))) >> (log2Wd + 1));
         src  += srcstride;
         dst  += dststride;
         src2 += MAX_PB_SIZE;
@@ -1492,7 +1492,7 @@ static void FUNC(put_hevc_epel_bi_w_hv)(uint8_t *_dst, ptrdiff_t _dststride, uin
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++)
             dst[x] = av_clip_pixel(((EPEL_FILTER(tmp, MAX_PB_SIZE) >> 6) * wx1 + src2[x] * wx0 +
-                                    ((ox0 + ox1 + 1) << log2Wd)) >> (log2Wd + 1));
+                                    ((ox0 + ox1 + 1) * (1 << log2Wd))) >> (log2Wd + 1));
         tmp  += MAX_PB_SIZE;
         dst  += dststride;
         src2 += MAX_PB_SIZE;

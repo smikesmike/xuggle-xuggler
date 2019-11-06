@@ -30,7 +30,7 @@
 #include "avcodec.h"
 #include "msrledec.h"
 
-static int msrle_decode_pal4(AVCodecContext *avctx, AVPicture *pic,
+static int msrle_decode_pal4(AVCodecContext *avctx, AVFrame *pic,
                              GetByteContext *gb)
 {
     unsigned char rle_code;
@@ -63,6 +63,7 @@ static int msrle_decode_pal4(AVCodecContext *avctx, AVPicture *pic,
                 stream_byte = bytestream2_get_byte(gb);
                 pixel_ptr += stream_byte;
                 stream_byte = bytestream2_get_byte(gb);
+                avpriv_request_sample(avctx, "Unused stream byte %X", stream_byte);
             } else {
                 // copy pixels from encoded stream
                 odd_pixel =  stream_byte & 1;
@@ -97,7 +98,7 @@ static int msrle_decode_pal4(AVCodecContext *avctx, AVPicture *pic,
             // decode a run of data
             if (pixel_ptr + rle_code > avctx->width + 1) {
                 av_log(avctx, AV_LOG_ERROR,
-                       "MS RLE: frame ptr just went out of bounds (run)\n");
+                       "MS RLE: frame ptr just went out of bounds (run) %d %d %d\n", pixel_ptr, rle_code, avctx->width);
                 return AVERROR_INVALIDDATA;
             }
             stream_byte = bytestream2_get_byte(gb);
@@ -125,7 +126,7 @@ static int msrle_decode_pal4(AVCodecContext *avctx, AVPicture *pic,
 }
 
 
-static int msrle_decode_8_16_24_32(AVCodecContext *avctx, AVPicture *pic,
+static int msrle_decode_8_16_24_32(AVCodecContext *avctx, AVFrame *pic,
                                    int depth, GetByteContext *gb)
 {
     uint8_t *output, *output_end;
@@ -245,7 +246,7 @@ static int msrle_decode_8_16_24_32(AVCodecContext *avctx, AVPicture *pic,
 }
 
 
-int ff_msrle_decode(AVCodecContext *avctx, AVPicture *pic,
+int ff_msrle_decode(AVCodecContext *avctx, AVFrame *pic,
                     int depth, GetByteContext *gb)
 {
     switch(depth){

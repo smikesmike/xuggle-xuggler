@@ -1,7 +1,7 @@
 /*****************************************************************************
  * asm.S: AArch64 utility macros
  *****************************************************************************
- * Copyright (C) 2008-2015 x264 project
+ * Copyright (C) 2008-2017 x264 project
  *
  * Authors: Mans Rullgard <mans@mansr.com>
  *          David Conrad <lessen42@gmail.com>
@@ -28,9 +28,9 @@
 #include "config.h"
 
 #ifdef PREFIX
-#   define EXTERN_ASM _
+#   define EXTERN_ASM _x264_
 #else
-#   define EXTERN_ASM
+#   define EXTERN_ASM x264_
 #endif
 
 #ifdef __ELF__
@@ -53,7 +53,11 @@
 
 .macro  function name, export=0, align=2
     .macro endfunc
+.if \export
+ELF     .size   EXTERN_ASM\name, . - EXTERN_ASM\name
+.else
 ELF     .size   \name, . - \name
+.endif
 FUNC    .endfunc
         .purgem endfunc
     .endm

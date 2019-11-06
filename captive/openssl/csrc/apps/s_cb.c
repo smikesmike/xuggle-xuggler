@@ -548,12 +548,12 @@ long MS_CALLBACK bio_dump_callback(BIO *bio, int cmd, const char *argp,
 
     if (cmd == (BIO_CB_READ | BIO_CB_RETURN)) {
         BIO_printf(out, "read from %p [%p] (%lu bytes => %ld (0x%lX))\n",
-                   (void *)bio, argp, (unsigned long)argi, ret, ret);
+                   (void *)bio, (void *)argp, (unsigned long)argi, ret, ret);
         BIO_dump(out, argp, (int)ret);
         return (ret);
     } else if (cmd == (BIO_CB_WRITE | BIO_CB_RETURN)) {
         BIO_printf(out, "write to %p [%p] (%lu bytes => %ld (0x%lX))\n",
-                   (void *)bio, argp, (unsigned long)argi, ret, ret);
+                   (void *)bio, (void *)argp, (unsigned long)argi, ret, ret);
         BIO_dump(out, argp, (int)ret);
     }
     return (ret);
@@ -979,6 +979,11 @@ void MS_CALLBACK tlsext_cb(SSL *s, int client_server, int type,
 #ifdef TLSEXT_TYPE_next_proto_neg
     case TLSEXT_TYPE_next_proto_neg:
         extname = "next protocol";
+        break;
+#endif
+#ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
+    case TLSEXT_TYPE_application_layer_protocol_negotiation:
+        extname = "application layer protocol negotiation";
         break;
 #endif
 
@@ -1502,10 +1507,17 @@ void print_ssl_summary(BIO *bio, SSL *s)
 }
 
 int args_ssl(char ***pargs, int *pargc, SSL_CONF_CTX *cctx,
-             int *badarg, BIO *err, STACK_OF(OPENSSL_STRING) **pstr)
+             int *badarg, BIO *err, STACK_OF(OPENSSL_STRING) **pstr,
+             int *no_prot_opt)
 {
     char *arg = **pargs, *argn = (*pargs)[1];
     int rv;
+
+    if (strcmp(arg, "-no_ssl2") == 0 || strcmp(arg, "-no_ssl3") == 0
+        || strcmp(arg, "-no_tls1") == 0 || strcmp(arg, "-no_tls1_1") == 0
+        || strcmp(arg, "-no_tls1_2") == 0) {
+        *no_prot_opt = 1;
+    }
 
     /* Attempt to run SSL configuration command */
     rv = SSL_CONF_cmd_argv(cctx, pargc, pargs);

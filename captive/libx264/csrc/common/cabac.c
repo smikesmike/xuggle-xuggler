@@ -1,7 +1,7 @@
 /*****************************************************************************
  * cabac.c: arithmetic coder
  *****************************************************************************
- * Copyright (C) 2003-2015 x264 project
+ * Copyright (C) 2003-2017 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -28,7 +28,7 @@
 #include "common.h"
 
 
-static const int8_t x264_cabac_context_init_I[1024][2] =
+static const int8_t cabac_context_init_I[1024][2] =
 {
     /* 0 - 10 */
     { 20, -15 }, {  2, 54 },  {  3,  74 }, { 20, -15 },
@@ -340,7 +340,7 @@ static const int8_t x264_cabac_context_init_I[1024][2] =
     {  -3,  70 }, {  -8,  93 }, { -10,  90 }, { -30, 127 }
 };
 
-static const int8_t x264_cabac_context_init_PB[3][1024][2] =
+static const int8_t cabac_context_init_PB[3][1024][2] =
 {
     /* i_cabac_init_idc == 0 */
     {
@@ -1325,30 +1325,27 @@ const uint16_t x264_cabac_entropy[128] =
     FIX8(0.9285), FIX8(1.0752), FIX8(1.0000), FIX8(1.0000)
 };
 
-uint8_t x264_cabac_contexts[4][QP_MAX_SPEC+1][1024];
+static uint8_t cabac_contexts[4][QP_MAX_SPEC+1][1024];
 
 void x264_cabac_init( x264_t *h )
 {
     int ctx_count = CHROMA444 ? 1024 : 460;
     for( int i = 0; i < 4; i++ )
     {
-        const int8_t (*cabac_context_init)[1024][2] = i == 0 ? &x264_cabac_context_init_I
-                                                             : &x264_cabac_context_init_PB[i-1];
+        const int8_t (*cabac_context_init)[1024][2] = i == 0 ? &cabac_context_init_I
+                                                             : &cabac_context_init_PB[i-1];
         for( int qp = 0; qp <= QP_MAX_SPEC; qp++ )
             for( int j = 0; j < ctx_count; j++ )
             {
                 int state = x264_clip3( (((*cabac_context_init)[j][0] * qp) >> 4) + (*cabac_context_init)[j][1], 1, 126 );
-                x264_cabac_contexts[i][qp][j] = (X264_MIN( state, 127-state ) << 1) | (state >> 6);
+                cabac_contexts[i][qp][j] = (X264_MIN( state, 127-state ) << 1) | (state >> 6);
             }
     }
 }
 
-/*****************************************************************************
- *
- *****************************************************************************/
 void x264_cabac_context_init( x264_t *h, x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model )
 {
-    memcpy( cb->state, x264_cabac_contexts[i_slice_type == SLICE_TYPE_I ? 0 : i_model + 1][i_qp], CHROMA444 ? 1024 : 460 );
+    memcpy( cb->state, cabac_contexts[i_slice_type == SLICE_TYPE_I ? 0 : i_model + 1][i_qp], CHROMA444 ? 1024 : 460 );
 }
 
 void x264_cabac_encode_init_core( x264_cabac_t *cb )
@@ -1367,7 +1364,7 @@ void x264_cabac_encode_init( x264_cabac_t *cb, uint8_t *p_data, uint8_t *p_end )
     cb->p_end   = p_end;
 }
 
-static inline void x264_cabac_putbyte( x264_cabac_t *cb )
+static inline void cabac_putbyte( x264_cabac_t *cb )
 {
     if( cb->i_queue >= 0 )
     {
@@ -1399,13 +1396,13 @@ static inline void x264_cabac_putbyte( x264_cabac_t *cb )
     }
 }
 
-static inline void x264_cabac_encode_renorm( x264_cabac_t *cb )
+static inline void cabac_encode_renorm( x264_cabac_t *cb )
 {
     int shift = x264_cabac_renorm_shift[cb->i_range>>3];
     cb->i_range <<= shift;
     cb->i_low   <<= shift;
     cb->i_queue  += shift;
-    x264_cabac_putbyte( cb );
+    cabac_putbyte( cb );
 }
 
 /* Making custom versions of this function, even in asm, for the cases where
@@ -1422,7 +1419,7 @@ void x264_cabac_encode_decision_c( x264_cabac_t *cb, int i_ctx, int b )
         cb->i_range = i_range_lps;
     }
     cb->state[i_ctx] = x264_cabac_transition[i_state][b];
-    x264_cabac_encode_renorm( cb );
+    cabac_encode_renorm( cb );
 }
 
 /* Note: b is negated for this function */
@@ -1431,7 +1428,7 @@ void x264_cabac_encode_bypass_c( x264_cabac_t *cb, int b )
     cb->i_low <<= 1;
     cb->i_low += b & cb->i_range;
     cb->i_queue += 1;
-    x264_cabac_putbyte( cb );
+    cabac_putbyte( cb );
 }
 
 static const int bypass_lut[16] =
@@ -1452,7 +1449,7 @@ void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val )
         cb->i_low <<= i;
         cb->i_low += ((x>>k)&0xff) * cb->i_range;
         cb->i_queue += i;
-        x264_cabac_putbyte( cb );
+        cabac_putbyte( cb );
         i = 8;
     } while( k > 0 );
 }
@@ -1460,7 +1457,7 @@ void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val )
 void x264_cabac_encode_terminal_c( x264_cabac_t *cb )
 {
     cb->i_range -= 2;
-    x264_cabac_encode_renorm( cb );
+    cabac_encode_renorm( cb );
 }
 
 void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb )
@@ -1469,12 +1466,12 @@ void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb )
     cb->i_low |= 1;
     cb->i_low <<= 9;
     cb->i_queue += 9;
-    x264_cabac_putbyte( cb );
-    x264_cabac_putbyte( cb );
+    cabac_putbyte( cb );
+    cabac_putbyte( cb );
     cb->i_low <<= -cb->i_queue;
     cb->i_low |= (0x35a4e4f5 >> (h->i_frame & 31) & 1) << 10;
     cb->i_queue = 0;
-    x264_cabac_putbyte( cb );
+    cabac_putbyte( cb );
 
     while( cb->i_bytes_outstanding > 0 )
     {

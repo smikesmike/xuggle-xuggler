@@ -250,37 +250,6 @@ namespace com { namespace xuggle { namespace xuggler
     virtual void setPosition(int64_t position)=0;
     
     /**
-     * Time difference in {@link IStream#getTimeBase()} units
-     * from the presentation time stamp of this
-     * packet to the point at which the output from the decoder has converged
-     * independent from the availability of previous frames. That is, the
-     * frames are virtually identical no matter if decoding started from
-     * the very first frame or from this keyframe.
-     * Is {@link Global#NO_PTS} if unknown.
-     * This field is not the display duration of the current packet.
-     * <p>
-     * The purpose of this field is to allow seeking in streams that have no
-     * keyframes in the conventional sense. It corresponds to the
-     * recovery point SEI in H.264 and match_time_delta in NUT. It is also
-     * essential for some types of subtitle streams to ensure that all
-     * subtitles are correctly displayed after seeking.
-     * </p>
-     * <p>
-     * If you didn't follow that, try drinking one to two glasses
-     * of Absinthe.  It won't help, but it'll be more fun.
-     * </p>
-     * 
-     * @return the convergence duration
-     */
-    virtual int64_t getConvergenceDuration()=0;
-    
-    /**
-     * Set the convergence duration.
-     * @param duration the new duration
-     */
-    virtual void setConvergenceDuration(int64_t duration)=0;
-    
-    /**
      * Allocate a new packet wrapping the existing contents of
      * a passed in packet.  Callers can then modify
      * {@link #getPts()},

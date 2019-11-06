@@ -247,7 +247,7 @@ static av_cold int ape_decode_init(AVCodecContext *avctx)
     s->compression_level = AV_RL16(avctx->extradata + 2);
     s->flags             = AV_RL16(avctx->extradata + 4);
 
-    av_log(avctx, AV_LOG_DEBUG, "Compression Level: %d - Flags: %d\n",
+    av_log(avctx, AV_LOG_VERBOSE, "Compression Level: %d - Flags: %d\n",
            s->compression_level, s->flags);
     if (s->compression_level % 1000 || s->compression_level > COMPRESSION_LEVEL_INSANE ||
         !s->compression_level ||
@@ -892,6 +892,9 @@ static void long_filter_high_3800(int32_t *buffer, int order, int shift, int len
     int32_t dotprod, sign;
     int32_t coeffs[256], delay[256];
 
+    if (order >= length)
+        return;
+
     memset(coeffs, 0, order * sizeof(*coeffs));
     for (i = 0; i < order; i++)
         delay[i] = buffer[i];
@@ -1281,7 +1284,7 @@ static void do_apply_filter(APEContext *ctx, int version, APEFilter *f,
             /* Update the adaption coefficients */
             absres = FFABS(res);
             if (absres)
-                *f->adaptcoeffs = ((res & (-1<<31)) ^ (-1<<30)) >>
+                *f->adaptcoeffs = ((res & INT32_MIN) ^ (-(1<<30))) >>
                                   (25 + (absres <= f->avg*3) + (absres <= f->avg*4/3));
             else
                 *f->adaptcoeffs = 0;
@@ -1369,7 +1372,7 @@ static void ape_unpack_stereo(APEContext *ctx, int count)
     int32_t *decoded0 = ctx->decoded[0];
     int32_t *decoded1 = ctx->decoded[1];
 
-    if (ctx->frameflags & APE_FRAMECODE_STEREO_SILENCE) {
+    if ((ctx->frameflags & APE_FRAMECODE_STEREO_SILENCE) == APE_FRAMECODE_STEREO_SILENCE) {
         /* We are pure silence, so we're done. */
         av_log(ctx->avctx, AV_LOG_DEBUG, "pure silence stereo\n");
         return;
@@ -1401,6 +1404,7 @@ static int ape_decode_frame(AVCodecContext *avctx, void *data,
     int32_t *sample24;
     int i, ch, ret;
     int blockstodecode;
+    uint64_t decoded_buffer_size;
 
     /* this should never be negative, but bad things will happen if it is, so
        check it just to make sure. */
@@ -1456,7 +1460,7 @@ static int ape_decode_frame(AVCodecContext *avctx, void *data,
                 skip_bits_long(&s->gb, offset);
         }
 
-        if (!nblocks || nblocks > INT_MAX) {
+        if (!nblocks || nblocks > INT_MAX / 2 / sizeof(*s->decoded_buffer) - 8) {
             av_log(avctx, AV_LOG_ERROR, "Invalid sample count: %"PRIu32".\n",
                    nblocks);
             return AVERROR_INVALIDDATA;
@@ -1482,8 +1486,9 @@ static int ape_decode_frame(AVCodecContext *avctx, void *data,
         blockstodecode = s->samples;
 
     /* reallocate decoded sample buffer if needed */
-    av_fast_malloc(&s->decoded_buffer, &s->decoded_size,
-                   2 * FFALIGN(blockstodecode, 8) * sizeof(*s->decoded_buffer));
+    decoded_buffer_size = 2LL * FFALIGN(blockstodecode, 8) * sizeof(*s->decoded_buffer);
+    av_assert0(decoded_buffer_size <= INT_MAX);
+    av_fast_malloc(&s->decoded_buffer, &s->decoded_size, decoded_buffer_size);
     if (!s->decoded_buffer)
         return AVERROR(ENOMEM);
     memset(s->decoded_buffer, 0, s->decoded_size);
@@ -1570,7 +1575,8 @@ AVCodec ff_ape_decoder = {
     .init           = ape_decode_init,
     .close          = ape_decode_close,
     .decode         = ape_decode_frame,
-    .capabilities   = CODEC_CAP_SUBFRAMES | CODEC_CAP_DELAY | CODEC_CAP_DR1,
+    .capabilities   = AV_CODEC_CAP_SUBFRAMES | AV_CODEC_CAP_DELAY |
+                      AV_CODEC_CAP_DR1,
     .flush          = ape_flush,
     .sample_fmts    = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_U8P,
                                                       AV_SAMPLE_FMT_S16P,

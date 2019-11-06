@@ -31,6 +31,8 @@
 // easier to yank later.
 extern "C" {
 #include <libswscale/swscale.h>
+
+#include "PixelFormat.h"
 }
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
@@ -173,19 +175,19 @@ namespace com { namespace xuggle { namespace xuggler
  * The next two methods are to work around a break in backwards compatibility introduced
  * in FFmpeg in September 2010
  */
-static int handle_jpeg(enum PixelFormat *format)
+static int handle_jpeg(PixelFormat::Type *format)
 {
     switch (*format) {
-    case PIX_FMT_YUVJ420P: *format = PIX_FMT_YUV420P; return 1;
-    case PIX_FMT_YUVJ422P: *format = PIX_FMT_YUV422P; return 1;
-    case PIX_FMT_YUVJ444P: *format = PIX_FMT_YUV444P; return 1;
-    case PIX_FMT_YUVJ440P: *format = PIX_FMT_YUV440P; return 1;
+    case AV_PIX_FMT_YUVJ420P: *format = (PixelFormat::Type)AV_PIX_FMT_YUVJ420P; return 1;
+    case AV_PIX_FMT_YUVJ422P: *format = (PixelFormat::Type)AV_PIX_FMT_YUVJ422P; return 1;
+    case AV_PIX_FMT_YUVJ444P: *format = (PixelFormat::Type)AV_PIX_FMT_YUVJ444P; return 1;
+    case AV_PIX_FMT_YUVJ440P: *format = (PixelFormat::Type)AV_PIX_FMT_YUVJ440P; return 1;
     default:                                          return 0;
     }
 }
 
-static SwsContext *xuggleSws_getContext(int srcW, int srcH, enum PixelFormat srcFormat,
-                           int dstW, int dstH, enum PixelFormat dstFormat, int flags,
+static SwsContext *xuggleSws_getContext(int srcW, int srcH, PixelFormat::Type srcFormat,
+                           int dstW, int dstH, PixelFormat::Type dstFormat, int flags,
                            SwsFilter *srcFilter, SwsFilter *dstFilter, const double *param)
 {
     SwsContext *c;
@@ -266,10 +268,10 @@ static SwsContext *xuggleSws_getContext(int srcW, int srcH, enum PixelFormat src
         retval->mContext = xuggleSws_getContext(
             retval->mIWidth, // src width
             retval->mIHeight, // src height
-            (PixelFormat)retval->mIPixelFmt, // src pixel type
+            retval->mIPixelFmt, // src pixel type
             retval->mOWidth, // dst width
             retval->mOHeight, // dst height
-            (PixelFormat)retval->mOPixelFmt, // dst pixel type
+            retval->mOPixelFmt, // dst pixel type
             flags, // Flags
             0, // Source Filter
             0, // Destination Filter

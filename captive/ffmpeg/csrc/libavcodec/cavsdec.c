@@ -32,7 +32,6 @@
 #include "cavs.h"
 #include "internal.h"
 #include "mpeg12data.h"
-#include "mpegvideo.h"
 
 static const uint8_t mv_scan[4] = {
     MV_FWD_X0, MV_FWD_X1,
@@ -466,7 +465,7 @@ static inline void mv_pred_direct(AVSContext *h, cavs_vector *pmv_fw,
                                   cavs_vector *col_mv)
 {
     cavs_vector *pmv_bw = pmv_fw + MV_BWD_OFFS;
-    int den = h->direct_den[col_mv->ref];
+    unsigned den = h->direct_den[col_mv->ref];
     int m = FF_SIGNBIT(col_mv->x);
 
     pmv_fw->dist = h->dist[1];
@@ -616,7 +615,7 @@ static inline int decode_residual_inter(AVSContext *h)
 
     /* get quantizer */
     if (h->cbp && !h->qp_fixed)
-        h->qp = (h->qp + get_se_golomb(&h->gb)) & 63;
+        h->qp = (h->qp + (unsigned)get_se_golomb(&h->gb)) & 63;
     for (block = 0; block < 4; block++)
         if (h->cbp & (1 << block))
             decode_residual_block(h, &h->gb, inter_dec, 0, h->qp,
@@ -1032,6 +1031,10 @@ static int decode_pic(AVSContext *h)
     h->scale_den[1] = h->dist[1] ? 512/h->dist[1] : 0;
     if (h->cur.f->pict_type == AV_PICTURE_TYPE_B) {
         h->sym_factor = h->dist[0] * h->scale_den[1];
+        if (FFABS(h->sym_factor) > 32768) {
+            av_log(h->avctx, AV_LOG_ERROR, "sym_factor %d too large\n", h->sym_factor);
+            return AVERROR_INVALIDDATA;
+        }
     } else {
         h->direct_den[0] = h->dist[0] ? 16384 / h->dist[0] : 0;
         h->direct_den[1] = h->dist[1] ? 16384 / h->dist[1] : 0;
@@ -1144,6 +1147,12 @@ static int decode_seq_header(AVSContext *h)
     skip_bits(&h->gb, 3); //sample_precision
     h->aspect_ratio = get_bits(&h->gb, 4);
     frame_rate_code = get_bits(&h->gb, 4);
+    if (frame_rate_code == 0 || frame_rate_code > 13) {
+        av_log(h->avctx, AV_LOG_WARNING,
+               "frame_rate_code %d is invalid\n", frame_rate_code);
+        frame_rate_code = 1;
+    }
+
     skip_bits(&h->gb, 18); //bit_rate_lower
     skip_bits1(&h->gb);    //marker_bit
     skip_bits(&h->gb, 12); //bit_rate_upper
@@ -1212,6 +1221,8 @@ static int cavs_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
                 h->got_keyframe = 1;
             }
         case PIC_PB_START_CODE:
+            if (*got_frame)
+                av_frame_unref(data);
             *got_frame = 0;
             if (!h->got_keyframe)
                 break;
@@ -1256,6 +1267,6 @@ AVCodec ff_cavs_decoder = {
     .init           = ff_cavs_init,
     .close          = ff_cavs_end,
     .decode         = cavs_decode_frame,
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_DELAY,
+    .capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_DELAY,
     .flush          = cavs_flush,
 };

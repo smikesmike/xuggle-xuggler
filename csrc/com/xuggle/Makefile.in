@@ -97,10 +97,14 @@ host_triplet = @host@
 @VS_OS_WINDOWS_TRUE@	-XCClinker -lkernel32
 
 @VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@am__append_2 = \
-@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libstdc++
+#@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -static-libgcc
 
 @VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@am__append_3 = \
-@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -L/Users/marc/macports/lib/
+#@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -stdlib=libc++
+#@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -static-libgcc++
+#@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@ -nostdlib -static-libtool-libs -XCClinker -static-libstdc++
 
 subdir = csrc/com/xuggle
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
@@ -159,7 +163,7 @@ am__v_lt_0 = --silent
 am__v_lt_1 = 
 libxuggle_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(libxuggle_la_LDFLAGS) $(LDFLAGS) -o $@
+	$(CXXFLAGS) $(libxuggle_la_LDFLAGS) $(LDFLAGS) -v -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -502,7 +506,7 @@ clean-libLTLIBRARIES:
 	}
 
 libxuggle.la: $(libxuggle_la_OBJECTS) $(libxuggle_la_DEPENDENCIES) $(EXTRA_libxuggle_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(libxuggle_la_LINK) -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
+	$(AM_V_CXXLD)$(libxuggle_la_LINK) -v -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

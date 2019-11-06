@@ -119,9 +119,10 @@ ifeq ($(SYS_ARCH),ARM)
 ifneq ($(AS),)
 ASMSRC += common/arm/cpu-a.S common/arm/pixel-a.S common/arm/mc-a.S \
           common/arm/dct-a.S common/arm/quant-a.S common/arm/deblock-a.S \
-          common/arm/predict-a.S
+          common/arm/predict-a.S common/arm/bitstream-a.S
 SRCS   += common/arm/mc-c.c common/arm/predict-c.c
 OBJASM  = $(ASMSRC:%.S=%.o)
+OBJCHK += tools/checkasm-arm.o
 endif
 endif
 
@@ -140,6 +141,7 @@ SRCS   += common/aarch64/asm-offsets.c \
           common/aarch64/mc-c.c        \
           common/aarch64/predict-c.c
 OBJASM  = $(ASMSRC:%.S=%.o)
+OBJCHK += tools/checkasm-aarch64.o
 endif
 endif
 
@@ -276,7 +278,8 @@ clean:
 	rm -f $(SRC2:%.c=%.gcda) $(SRC2:%.c=%.gcno) *.dyn pgopti.dpi pgopti.dpi.lock *.pgd *.pgc
 
 distclean: clean
-	rm -f config.mak x264_config.h config.h config.log x264.pc x264.def conftest*
+	rm -f config.mak x264_config.h config.h config.log x264.pc x264.def
+	rm -rf conftest*
 
 install-cli: cli
 	$(INSTALL) -d $(DESTDIR)$(bindir)

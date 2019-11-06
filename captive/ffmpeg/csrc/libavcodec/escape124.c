@@ -155,7 +155,7 @@ static MacroBlock decode_macroblock(Escape124Context* s, GetBitContext* gb,
     // depth = 0 means that this shouldn't read any bits;
     // in theory, this is the same as get_bits(gb, 0), but
     // that doesn't actually work.
-    block_index = depth ? get_bits(gb, depth) : 0;
+    block_index = get_bitsz(gb, depth);
 
     if (*codebook_index == 1) {
         block_index += superblock_index << s->codebooks[1].depth;
@@ -250,6 +250,10 @@ static int escape124_decode_frame(AVCodecContext *avctx,
                 // This codebook can be cut off at places other than
                 // powers of 2, leaving some of the entries undefined.
                 cb_size = get_bits_long(&gb, 20);
+                if (!cb_size) {
+                    av_log(avctx, AV_LOG_ERROR, "Invalid codebook size 0.\n");
+                    return AVERROR_INVALIDDATA;
+                }
                 cb_depth = av_log2(cb_size - 1) + 1;
             } else {
                 cb_depth = get_bits(&gb, 4);
@@ -373,5 +377,5 @@ AVCodec ff_escape124_decoder = {
     .init           = escape124_decode_init,
     .close          = escape124_decode_close,
     .decode         = escape124_decode_frame,
-    .capabilities   = CODEC_CAP_DR1,
+    .capabilities   = AV_CODEC_CAP_DR1,
 };

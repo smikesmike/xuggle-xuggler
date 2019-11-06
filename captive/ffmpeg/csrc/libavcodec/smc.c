@@ -132,6 +132,10 @@ static void smc_decode_stream(SmcContext *s)
                 row_ptr, image_size);
             return;
         }
+        if (bytestream2_get_bytes_left(&s->gb) < 1) {
+            av_log(s->avctx, AV_LOG_ERROR, "input too small\n");
+            return;
+        }
 
         opcode = bytestream2_get_byte(&s->gb);
         switch (opcode & 0xF0) {
@@ -472,5 +476,5 @@ AVCodec ff_smc_decoder = {
     .init           = smc_decode_init,
     .close          = smc_decode_end,
     .decode         = smc_decode_frame,
-    .capabilities   = CODEC_CAP_DR1,
+    .capabilities   = AV_CODEC_CAP_DR1,
 };

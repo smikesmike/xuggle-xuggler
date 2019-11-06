@@ -156,7 +156,7 @@ static void timestamp_print(BIO *out, SCT_TIMESTAMP timestamp)
     gen = ASN1_GENERALIZEDTIME_new();
     ASN1_GENERALIZEDTIME_adj(gen, (time_t)0,
                              (int)(timestamp / 86400000),
-                             (timestamp % 86400000) / 1000);
+                             (int)(timestamp % 86400000) / 1000);
     /*
      * Note GeneralizedTime from ASN1_GENERALIZETIME_adj is always 15
      * characters long with a final Z. Update it with fractional seconds.
@@ -190,8 +190,9 @@ static STACK_OF(SCT) *d2i_SCT_LIST(STACK_OF(SCT) **a,
     SCT *sct;
     unsigned char *p, *p2;
     unsigned short listlen, sctlen = 0, fieldlen;
+    const unsigned char *q = *pp;
 
-    if (d2i_ASN1_OCTET_STRING(&oct, pp, length) == NULL)
+    if (d2i_ASN1_OCTET_STRING(&oct, &q, length) == NULL)
         return NULL;
     if (oct->length < 2)
         goto done;
@@ -279,6 +280,7 @@ static STACK_OF(SCT) *d2i_SCT_LIST(STACK_OF(SCT) **a,
 
  done:
     ASN1_OCTET_STRING_free(oct);
+    *pp = q;
     return sk;
 
  err:
