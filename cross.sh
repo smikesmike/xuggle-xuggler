@@ -30,7 +30,7 @@ VS_WIN32=i686-w64-mingw32
 VS_WIN64=x86_64-w64-mingw32
 VS_LIN32=i686-pc-linux-gnu
 VS_LIN64=x86_64-pc-linux-gnu
-VS_MAC32=i386-xuggle-darwin11
+#VS_MAC32=i386-xuggle-darwin11
 VS_MAC64=x86_64-xuggle-darwin11
 VS_MACU=universal-xuggle-darwin11
 
@@ -58,14 +58,14 @@ darwin_lipo()
 # Stage each individual OS, then stage the java code.
 case $HOST in
   *darwin*)
-    ant -Dbuild.configure.os=${VS_MAC32} stage-native && \
+    #ant -Dbuild.configure.os=${VS_MAC32} stage-native && \
     ant -Dbuild.configure.os=${VS_MAC64} stage-native && \
     darwin_lipo && \
     ant -Dbuild.configure.os=${VS_MAC64} stage-java && \
     true
   ;;
   *linux*)
-    ant -Dbuild.configure.os=${VS_LIN32} stage-native && \
+    #ant -Dbuild.configure.os=${VS_LIN32} stage-native && \
     ant -Dbuild.configure.os=${VS_LIN64} stage-native && \
     ant -Dbuild.configure.os=${VS_WIN32} stage-native && \
     ant -Dbuild.configure.os=${VS_WIN64} stage-native && \
