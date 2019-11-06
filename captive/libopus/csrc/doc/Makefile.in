@@ -261,6 +261,7 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -396,8 +397,8 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@HAVE_DOXYGEN_FALSE@install-data-local:
 @HAVE_DOXYGEN_FALSE@uninstall-local:
+@HAVE_DOXYGEN_FALSE@install-data-local:
 @HAVE_DOXYGEN_FALSE@clean-local:
 clean: clean-am
 
