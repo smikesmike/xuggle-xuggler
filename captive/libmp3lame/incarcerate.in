@@ -23,9 +23,14 @@ case $HOST_OS in
   # on windows we need to disable force inline
   CFLAGS="-DFORCEINLINE= ${CFLAGS}"
   ;;
+  *i686-pc-linux*)
+  CFLAGS="-msse4.1 ${CFLAGS}"
+  CXXFLAGS="-msse4.1 ${CXXFLAGS}"
+  ;;
   *)
   ;;
 esac
+
 
 CC="@CC@" \
 CFLAGS="-I@abs_top_builddir@/stage@includedir@ ${CFLAGS}" \
