@@ -52,10 +52,10 @@ libxuggle_la_LDFLAGS+= \
 else
 if VS_OS_LINUX
 libxuggle_la_LDFLAGS+= \
-	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+	-nostdlib -static-libtool-libs -XCClinker -static-libstdc++ -static-libgcc
 else
 libxuggle_la_LDFLAGS+= \
-    -nostdlib -static-libtool-libs -XCClinker -static-libgcc \
+    -nostdlib -static-libtool-libs -XCClinker -static-libstdc++ -static-libgcc \
     -v
 endif
 endif
