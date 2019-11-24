@@ -17,15 +17,17 @@ else
   CROSS=
 fi
 
+BUILD_ARGS=""
 case $HOST_OS in
   *i686-pc-linux*)
   CFLAGS="-fno-stack-protector ${CFLAGS}"
+  BUILD_ARGS="enable_stack_protector=no ${BUILD_ARGS}"
   ;;
   *)
   ;;
 esac
 
-enable_stack_protector=no \
+$BUILD_ARGS \
 CC="@CC@" \
 CFLAGS="-I@abs_top_builddir@/stage@includedir@ @CFLAGS@" \
 LD="@LD@" \
